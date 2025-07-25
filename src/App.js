@@ -531,10 +531,10 @@ const CostEstimator = () => {
                 if (people <= 15) {
                     totalCost = model.pizzaParty.base_fee;
                     breakdownCalc.push(`Pizza party for up to 15 guests: $${totalCost.toFixed(2)}`);
-                } else if (people <= 30) {
+                } else if (people <= 29) {
                     totalCost = people * model.pizzaParty.per_person_mid;
                     breakdownCalc.push(`Pizza party for ${people} guests at $${model.pizzaParty.per_person_mid}/person: $${totalCost.toFixed(2)}`);
-                } else { // 31+
+                } else { // 30+
                     totalCost = people * model.pizzaParty.per_person_large;
                     breakdownCalc.push(`Pizza party for ${people} guests at $${model.pizzaParty.per_person_large}/person: $${totalCost.toFixed(2)}`);
                 }
