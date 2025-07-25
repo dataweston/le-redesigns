@@ -96,6 +96,14 @@ const sampleMenus = [
   }
 ];
 
+const specialSkills = [
+    { name: "Sourdough & Baking", description: "Natural leavening is a passion. We maintain our own sourdough starter and bake all our bread products in-house using local flours." },
+    { name: "Fresh Pasta", description: "From agnolotti to tajarin, all our pasta is handmade, often using specialty flours and local eggs." },
+    { name: "Charcuterie & Curing", description: "We practice whole-animal butchery and cure our own meats, from duck prosciutto to pork pate, ensuring quality and minimizing waste." },
+    { name: "Foraging", description: "When the season allows, we forage for wild ingredients like ramps, mushrooms, and berries to bring a unique taste of Minnesota to the plate." },
+    { name: "Fermentation", description: "We use fermentation to create unique flavors and preserve the harvest, making everything from hot sauce to kombucha." }
+];
+
 
 // --- Schema.org Generation (Unchanged) ---
 const JsonLd = ({ data }) => (
@@ -109,7 +117,7 @@ const baseSchema = {
   "@type": "FoodEstablishment",
   "name": "Local Effort",
   "url": "https://www.localeffortfood.com/",
-  "logo": "http://googleusercontent.com/file_content/1",
+  "logo": logo,
   "address": {
     "@type": "PostalAddress",
     "addressLocality": "Roseville",
@@ -263,7 +271,6 @@ const AboutUsPage = () => {
                 <title>About Us | Local Effort</title>
                 <meta name="description" content="Meet the chefs behind Local Effort, Weston Smith and Catherine Olsen. With 30 years of collective experience, we are passionate about food and hospitality." />
             </Helmet>
-            {/* JsonLd components would be here */}
             <div className="space-y-16">
                 <h2 className="text-5xl md:text-7xl font-bold uppercase border-b border-gray-900 pb-4">About Us</h2>
                 <p className="font-mono text-lg max-w-3xl">With 30 years of collective experience, we are passionate about food and hospitality. We believe in quality, handmade products and sourcing the best local ingredients without compromise. We prefer direct communication with our clients.</p>
@@ -306,14 +313,12 @@ const AboutUsPage = () => {
 };
 
 const ServicesPage = ({ setActivePage }) => {
-    // Schema data remains the same
     return (
         <>
             <Helmet>
                 <title>Services | Local Effort</title>
                 <meta name="description" content="Explore the personal chef and catering services offered by Local Effort, including weekly meal prep, in-home dinners, event catering, and mobile pizza parties." />
             </Helmet>
-            {/* JsonLd component would be here */}
             <div className="space-y-16">
                 <h2 className="text-5xl md:text-7xl font-bold uppercase border-b border-gray-900 pb-4">Services</h2>
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -399,7 +404,6 @@ const MenuPage = () => {
                 <title>Menu Examples | Local Effort</title>
                 <meta name="description" content="View sample menus from real events catered by Local Effort. Get inspiration for your wedding, office party, or intimate dinner." />
             </Helmet>
-            {/* JsonLd component would be here */}
             <div className="space-y-16">
                 <h2 className="text-5xl md:text-7xl font-bold uppercase">Menu Examples</h2>
                 <p className="font-mono text-lg max-w-3xl">We create custom menus for every event. These are from real events and proposals and are intended as inspiration. Use them as a starting point for your own handmade menu.</p>
