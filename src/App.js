@@ -463,6 +463,8 @@ const PizzaPartyPage = () => (
     </>
 );
 
+import React, { useState } from 'react';
+
 const CostEstimator = () => {
     const [userAnswers, setUserAnswers] = useState({});
     const [currentQuestionKey, setCurrentQuestionKey] = useState('start');
@@ -493,7 +495,7 @@ const CostEstimator = () => {
         let totalCost = 0;
         let breakdownCalc = [];
         const people = parseInt(answers.numPeople) || 1;
-        const model = { mealPlan: { price_per_meal: { breakfast: 13.5, lunch: 18.5, dinner: 24 }, discounts: { couple: 0.1, family: 0.2, monthly: 0.1, seasonal: 0.2 } }, eventBase: { plated: 85, buffet: 55, passedApps: 55, dropoff: 25, buffetAndPassed: 65 }, portionMultiplier: { lightSnacks: 0.8, substantialApps: 1.0, fullMeal: 1.2 }, pizzaParty: { base_fee: 300, base_guests: 15, addons_per_person: { low: 10, high: 30 } } };
+        const model = { mealPlan: { price_per_meal: { breakfast: 13.5, lunch: 18.5, dinner: 24 }, discounts: { couple: 0.1, family: 0.2, monthly: 0.1, seasonal: 0.2 } }, eventBase: { plated: 85, buffet: 55, passedApps: 55, dropoff: 25, buffetAndPassed: 65 }, portionMultiplier: { lightSnacks: 0.8, substantialApps: 1.0, fullMeal: 1.2 }, pizzaParty: { base_fee: 300, per_person_mid: 20, per_person_large: 16, addons_per_person: { low: 10, high: 30 } } };
         
         switch(type) {
             case 'mealPlan':
@@ -501,7 +503,7 @@ const CostEstimator = () => {
                 weeklyCost *= people;
                 breakdownCalc.push(`Weekly meal total for ${people} ${people > 1 ? 'people' : 'person'}: $${weeklyCost.toFixed(2)}`);
                 let coupleDiscount = (people === 2) ? weeklyCost * model.mealPlan.discounts.couple : 0;
-                let familyDiscount = (people >= 4) ? weeklyCost * model.mealPlan.discounts.family : 0; // Corrected to 4 or more
+                let familyDiscount = (people >= 4) ? weeklyCost * model.mealPlan.discounts.family : 0;
                 if(coupleDiscount > 0) breakdownCalc.push(`10% discount for two: -$${coupleDiscount.toFixed(2)}`);
                 if(familyDiscount > 0) breakdownCalc.push(`20% discount for family of 4+: -$${familyDiscount.toFixed(2)}`);
                 let costAfterPeopleDiscount = weeklyCost - coupleDiscount - familyDiscount;
@@ -523,8 +525,17 @@ const CostEstimator = () => {
                 if(discountFactor < 1) breakdownCalc.push(`Includes a group discount for ${people} guests.`);
                 break;
             case 'pizzaParty':
-                totalCost = model.pizzaParty.base_fee;
-                breakdownCalc.push(`Pizza party for up to ${model.pizzaParty.base_guests} guests: $${model.pizzaParty.base_fee.toFixed(2)}`);
+                if (people <= 15) {
+                    totalCost = model.pizzaParty.base_fee;
+                    breakdownCalc.push(`Pizza party for up to 15 guests: $${totalCost.toFixed(2)}`);
+                } else if (people <= 30) {
+                    totalCost = people * model.pizzaParty.per_person_mid;
+                    breakdownCalc.push(`Pizza party for ${people} guests at $${model.pizzaParty.per_person_mid}/person: $${totalCost.toFixed(2)}`);
+                } else { // 31+
+                    totalCost = people * model.pizzaParty.per_person_large;
+                    breakdownCalc.push(`Pizza party for ${people} guests at $${model.pizzaParty.per_person_large}/person: $${totalCost.toFixed(2)}`);
+                }
+
                 if (answers.addons) {
                     const addonCost = answers.sensitivity === 'price_sensitive' ? model.pizzaParty.addons_per_person.low : model.pizzaParty.addons_per_person.high;
                     const addonTotal = addonCost * people;
@@ -559,6 +570,27 @@ const CostEstimator = () => {
         }
     };
 
+    const goBack = () => {
+        if (questionPath.length === 0) return;
+
+        const newPath = [...questionPath];
+        const previousKey = newPath.pop();
+        
+        setQuestionPath(newPath);
+        setCurrentQuestionKey(previousKey);
+
+        const questionToLeave = questions[previousKey];
+        if (questionToLeave) {
+            const newAnswers = { ...userAnswers };
+            if (questionToLeave.type === 'multi_number') {
+                questionToLeave.fields.forEach(field => delete newAnswers[field.id]);
+            } else {
+                delete newAnswers[questionToLeave.id];
+            }
+            setUserAnswers(newAnswers);
+        }
+    };
+
     const restart = () => {
         setUserAnswers({});
         setCurrentQuestionKey('start');
@@ -569,6 +601,45 @@ const CostEstimator = () => {
         setShowLeadForm(false);
         setShowThankYou(false);
     };
+
+        const initiateSquarePayment = async () => {
+        // The URL of your deployed serverless function
+        const apiUrl = 'https://your-live-api-url.vercel.app/create-payment-link';
+
+        const paymentDetails = {
+            amount: finalCost * 100, // Square expects amount in cents
+            currency: 'USD',
+            description: `Personal Chef Service - ${userAnswers.serviceType}`,
+            isRecurring: userAnswers.serviceType === 'mealPlan' && userAnswers.billing !== 'weekly',
+            customerAnswers: userAnswers
+        };
+
+        console.log("Sending payment details to server:", paymentDetails);
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(paymentDetails),
+            });
+
+            if (!response.ok) {
+                throw new Error('Server responded with an error.');
+            }
+
+            const data = await response.json();
+
+            // Redirect the user to the Square payment page
+            window.location.href = data.url;
+
+        } catch (error) {
+            console.error("Failed to initiate payment:", error);
+            alert("Sorry, we couldn't create the payment link. Please try again or contact us directly.");
+        }
+    };
+
 
     const currentQData = questions[currentQuestionKey];
     const totalSteps = userAnswers.serviceType ? {mealPlan: 3, smallEvent: 4, dinnerAtHome: 4, pizzaParty: 3}[userAnswers.serviceType] : 5;
@@ -587,7 +658,8 @@ const CostEstimator = () => {
                 
                 {!showLeadForm && !showThankYou && (
                     <div className="space-y-4 sm:space-y-0 sm:space-x-4 sm:flex sm:justify-center">
-                        <button onClick={() => setShowLeadForm(true)} className="w-full sm:w-auto bg-gray-900 text-white font-mono py-2 px-4 hover:bg-gray-700">Great! Let's Book It</button>
+                        <button onClick={initiateSquarePayment} className="w-full sm:w-auto bg-gray-900 text-white font-mono py-2 px-4 hover:bg-gray-700">Book Now</button>
+                        <button onClick={() => setShowLeadForm(true)} className="w-full sm:w-auto bg-gray-300 text-gray-900 font-mono py-2 px-4 hover:bg-gray-400">I Need More Info</button>
                     </div>
                 )}
 
@@ -598,7 +670,16 @@ const CostEstimator = () => {
                             <input type="text" placeholder="Full Name" className="w-full p-3 border border-gray-900 bg-transparent"/>
                             <input type="email" placeholder="Email Address" className="w-full p-3 border border-gray-900 bg-transparent"/>
                             <input type="tel" placeholder="Phone Number" className="w-full p-3 border border-gray-900 bg-transparent"/>
-                            <button onClick={() => setShowThankYou(true)} className="w-full bg-gray-900 text-white font-mono py-2 px-4 hover:bg-gray-700">Send My Info</button>
+                            <button onClick={() => {
+                                console.log("LEAD CAPTURED (SIMULATED):", {
+                                    name: "User's Name", // In a real app, get this from state
+                                    email: "User's Email",
+                                    phone: "User's Phone",
+                                    quote: finalCost,
+                                    answers: userAnswers
+                                });
+                                setShowThankYou(true);
+                            }} className="w-full bg-gray-900 text-white font-mono py-2 px-4 hover:bg-gray-700">Send My Info</button>
                         </div>
                     </div>
                 )}
@@ -614,7 +695,10 @@ const CostEstimator = () => {
 
     return (
         <div className="relative w-full border border-gray-900 p-8 min-h-[400px]">
-            <div className="w-full bg-gray-300 h-1 mb-8">
+            {questionPath.length > 0 && (
+                 <button onClick={goBack} className="absolute top-8 left-8 text-gray-900 font-mono hover:underline">&larr; Back</button>
+            )}
+            <div className="w-full bg-gray-300 h-1 my-8">
                 <div className="bg-gray-900 h-1" style={{ width: `${progress}%`, transition: 'width 0.5s ease-in-out' }}></div>
             </div>
             <div>
@@ -622,7 +706,7 @@ const CostEstimator = () => {
                 {currentQData.type === 'options' && (
                     <div className="space-y-3 font-mono">
                         {currentQData.options.map(opt => (
-                            <button key={opt.value} onClick={() => handleAnswer(currentQData, opt.value)} className="w-full text-left p-4 border border-gray-900 hover:bg-gray-200 block">
+                            <button key={opt.value.toString()} onClick={() => handleAnswer(currentQData, opt.value)} className="w-full text-left p-4 border border-gray-900 hover:bg-gray-200 block">
                                 {opt.text}
                             </button>
                         ))}
@@ -638,9 +722,9 @@ const CostEstimator = () => {
                     <div className="font-mono space-y-4">
                         {currentQData.fields.map(field => (
                              <div key={field.id} className="grid grid-cols-2 items-center gap-4">
-                                <label htmlFor={`input-${field.id}`} className="text-lg">{field.label}</label>
-                                <input type="number" id={`input-${field.id}`} placeholder="0" className="p-3 text-lg border-b-2 border-gray-900 outline-none bg-transparent"/>
-                            </div>
+                                 <label htmlFor={`input-${field.id}`} className="text-lg">{field.label}</label>
+                                 <input type="number" id={`input-${field.id}`} placeholder="0" className="p-3 text-lg border-b-2 border-gray-900 outline-none bg-transparent"/>
+                             </div>
                         ))}
                         <button onClick={() => {
                             const multiValue = {};
@@ -655,6 +739,8 @@ const CostEstimator = () => {
         </div>
     );
 };
+
+export default CostEstimator;
 
 
 const PricingPage = () => {
