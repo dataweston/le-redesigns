@@ -493,7 +493,7 @@ const CostEstimator = () => {
         let totalCost = 0;
         let breakdownCalc = [];
         const people = parseInt(answers.numPeople) || 1;
-        const model = { mealPlan: { price_per_meal: { breakfast: 13.5, lunch: 18.5, dinner: 24 }, discounts: { couple: 0.1, family: 0.1, monthly: 0.1, seasonal: 0.2 } }, eventBase: { plated: 100, buffet: 80, passedApps: 70, dropoff: 25, buffetAndPassed: 85 }, portionMultiplier: { lightSnacks: 0.8, substantialApps: 1.0, fullMeal: 1.2 }, pizzaParty: { base_fee: 300, base_guests: 15, addons_per_person: { low: 15, high: 45 } } };
+        const model = { mealPlan: { price_per_meal: { breakfast: 13.5, lunch: 18.5, dinner: 24 }, discounts: { couple: 0.1, family: 0.2, monthly: 0.1, seasonal: 0.2 } }, eventBase: { plated: 85, buffet: 55, passedApps: 55, dropoff: 25, buffetAndPassed: 65 }, portionMultiplier: { lightSnacks: 0.8, substantialApps: 1.0, fullMeal: 1.2 }, pizzaParty: { base_fee: 300, base_guests: 15, addons_per_person: { low: 10, high: 30 } } };
         
         switch(type) {
             case 'mealPlan':
