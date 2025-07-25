@@ -602,10 +602,7 @@ const CostEstimator = () => {
         setShowThankYou(false);
     };
 
-        const initiateSquarePayment = async () => {
-        // The URL of your deployed serverless function
-        const apiUrl = 'https://your-live-api-url.vercel.app/create-payment-link';
-
+    const initiateSquarePayment = () => {
         const paymentDetails = {
             amount: finalCost * 100, // Square expects amount in cents
             currency: 'USD',
@@ -613,33 +610,9 @@ const CostEstimator = () => {
             isRecurring: userAnswers.serviceType === 'mealPlan' && userAnswers.billing !== 'weekly',
             customerAnswers: userAnswers
         };
-
-        console.log("Sending payment details to server:", paymentDetails);
-
-        try {
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(paymentDetails),
-            });
-
-            if (!response.ok) {
-                throw new Error('Server responded with an error.');
-            }
-
-            const data = await response.json();
-
-            // Redirect the user to the Square payment page
-            window.location.href = data.url;
-
-        } catch (error) {
-            console.error("Failed to initiate payment:", error);
-            alert("Sorry, we couldn't create the payment link. Please try again or contact us directly.");
-        }
+        console.log("SIMULATING SQUARE PAYMENT. A developer would take this data and send it to a secure server to create a payment link.", paymentDetails);
+        alert("This would connect to Square to process the payment. See the browser console for details.");
     };
-
 
     const currentQData = questions[currentQuestionKey];
     const totalSteps = userAnswers.serviceType ? {mealPlan: 3, smallEvent: 4, dinnerAtHome: 4, pizzaParty: 3}[userAnswers.serviceType] : 5;
