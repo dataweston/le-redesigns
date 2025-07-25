@@ -96,15 +96,6 @@ const sampleMenus = [
   }
 ];
 
-const specialSkills = [
-    { name: "Sourcing", description: "We build personal relationships with farmers and producers across Minnesota and Wisconsin to find ingredients at their peak." },
-    { name: "Bean-to-Bar Chocolate", description: "Weston masters the complex process of turning raw cacao beans into fine chocolate for our desserts." },
-    { name: "Sourdough Bread", description: "Our naturally leavened sourdough is made with local flours and a long fermentation for superior flavor and texture." },
-    { name: "Handmade Pasta", description: "Catherine's expertise in fresh pasta brings an authentic, delicate touch to dishes like agnolotti and tagliatelle." },
-    { name: "Fine Pastry", description: "From elegant tarts to complex cakes, our pastry skills provide a refined finish to any meal." },
-    { name: "Coffee & Wine", description: "We possess a deep knowledge of beverage pairing, ensuring every part of your meal is harmonious." },
-    { name: "Table Arrangements", description: "Catherine forages for local flora to create stunning, natural table arrangements that complete the dining atmosphere." }
-];
 
 // --- Schema.org Generation (Unchanged) ---
 const JsonLd = ({ data }) => (
@@ -240,12 +231,12 @@ const HomePage = ({ setActivePage }) => {
                 />
                 <ServiceCard 
                     title="Dinners & Events"
-                    description="In-home chef experiences. Custom, handmade catering for parties of 2 to 50."
+                    description="Event catering and In-home chef experiences, for parties of 2 to 50."
                     action={() => setActivePage('events')}
                 />
                 <ServiceCard 
                     title="Pizza Parties"
-                    description="Mobile wood-fired pizza oven. We bring the party to you."
+                    description="Mobile high-temperature pizza oven, sourdough crusts, and all local ingredients. We bring the party to you."
                     action={() => setActivePage('pizzaParty')}
                 />
             </div>
@@ -359,7 +350,7 @@ const MealPrepPage = () => (
             
             <div className="border border-gray-900 p-8">
                 <h3 className="text-3xl font-bold mb-4">Foundation Meal Plan</h3>
-                <p className="font-mono mb-6 max-w-2xl">Inspired by the 'Protocol by Bryan Johnson', this plan provides 21 meals/week at ~1800 calories/day. Designed for optimal nutrition and convenience.</p>
+                <p className="font-mono mb-6 max-w-2xl">Inspired by the 'Protocol' by Bryan Johnson, this plan provides up to 21 meals/week at ~1800 calories/day. Designed for optimal nutrition and convenience.</p>
                 <div className="grid md:grid-cols-3 gap-px bg-gray-900 border border-gray-900">
                     <div className="bg-[#F5F5F5] p-6">
                         <h4 className="font-bold text-lg">01. Morning</h4>
@@ -512,7 +503,7 @@ const CostEstimator = () => {
                 let coupleDiscount = (people === 2) ? weeklyCost * model.mealPlan.discounts.couple : 0;
                 let familyDiscount = (people >= 4) ? weeklyCost * model.mealPlan.discounts.family : 0; // Corrected to 4 or more
                 if(coupleDiscount > 0) breakdownCalc.push(`10% discount for two: -$${coupleDiscount.toFixed(2)}`);
-                if(familyDiscount > 0) breakdownCalc.push(`10% discount for family of 4+: -$${familyDiscount.toFixed(2)}`);
+                if(familyDiscount > 0) breakdownCalc.push(`20% discount for family of 4+: -$${familyDiscount.toFixed(2)}`);
                 let costAfterPeopleDiscount = weeklyCost - coupleDiscount - familyDiscount;
                 let billingDiscount = 0;
                 if (answers.billing === 'seasonal') { billingDiscount = costAfterPeopleDiscount * model.mealPlan.discounts.seasonal; breakdownCalc.push(`20% seasonal billing discount: -$${billingDiscount.toFixed(2)}`); }
@@ -676,15 +667,15 @@ const PricingPage = () => {
         },
         {
           name: "What is the cost for a small event or party?",
-          answer: "Pricing for small events is flexible based on your needs. A simple food drop-off service starts as low as $25 per person. Full-service events, which can include passed appetizers, a buffet, or a fully plated and coursed meal, can range up to $125 per person or more, depending on menu complexity and service style. The price per person decreases for larger groups."
+          answer: "Pricing for small events is flexible based on your needs. A simple food drop-off service starts as low as $25 per person. Full-service events, which can include passed appetizers, a buffet, or a coursed family-style meal, can range up to $85 per person or more, depending on menu complexity and service style. The price per person decreases for larger groups."
         },
         {
           name: "How much does an intimate dinner at home cost?",
-          answer: "An intimate dinner at your home generally ranges from $65 to $125 per person. For parties of two, pricing begins at $85 per person. We can also accommodate requests for premium ingredients, which would be quoted above the $125 per person range."
+          answer: "An intimate dinner at your home generally ranges from $65 to $125 per person. For parties of two, pricing begins at $95 per person. We can get extra fancy too, if you like, and the sky is the limit."
         },
         {
           name: "How much is a private pizza party?",
-          answer: "Our private pizza parties start at a flat rate of $300 for groups of up to 15 people. We also offer add-on services like gourmet salads, appetizers, and desserts, which range from an additional $15 to $45 per person."
+          answer: "Our private pizza parties start at $300 for groups of up to 15 people. We also offer add-on services like salads, appetizers, and desserts, which typically range from an additional $15 to $30 per person."
         }
     ];
 
@@ -705,7 +696,7 @@ const PricingPage = () => {
         <>
             <Helmet>
                 <title>Pricing | Local Effort</title>
-                <meta name="description" content="Find pricing information for Local Effort's personal chef services, including weekly meal plans, event catering, intimate dinners, and private pizza parties." />
+                <meta name="description" content="How much does a personal chef cost? Find pricing information for Local Effort's personal chef services, including weekly meal plans, event catering, intimate dinners, and private pizza parties." />
             </Helmet>
             <JsonLd data={faqSchema} />
             <div className="space-y-16">
