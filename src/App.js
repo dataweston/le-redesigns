@@ -716,7 +716,7 @@ const CostEstimator = () => {
     );
 };
 
-export default CostEstimator;
+
 
 
 const PricingPage = () => {
