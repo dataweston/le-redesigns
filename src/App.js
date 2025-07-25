@@ -709,7 +709,7 @@ const PricingPage = () => {
                 </section>
 
                 <section>
-                    <h3 className="text-3xl font-bold uppercase mb-4">General Pricing</h3>
+                    <h3 className="text-3xl font-bold uppercase mb-4">General Pricing FAQ</h3>
                     <div className="space-y-px bg-gray-900 border border-gray-900">
                         {pricingFaqData.map((item, index) => (
                             <div key={index} className="bg-[#F5F5F5]">
