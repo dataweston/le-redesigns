@@ -326,7 +326,9 @@ const AboutUsPage = () => {
             src="/gallery/IMG-1013.JPG"
           />
 
-                        <p className="font-mono text-gray-600 mb-4">Chef de Cuisine, Director</p>
+                        <p className="font-mono text-gray-600 mb-4">Chef de Cuisine, Director</p><Photo 
+            src="/gallery/IMG-6353.JPG"
+          />
                         <p className="font-mono">California-born and New York-trained, Weston is in charge of baking our sourdough bread and creating the menus. (He's friendlier than he looks.)</p>
                     </div>
                     <div className="border border-gray-900 p-8">
