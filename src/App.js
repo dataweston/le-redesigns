@@ -280,7 +280,7 @@ const AboutUsPage = () => {
                 
                 <div className="grid md:grid-cols-2 gap-8">
                     <div className="border border-gray-900 p-8">
-                        <h3 className="text-3xl font-bold">Weston Smith</h3><PortfolioSection />
+                        <h3 className="text-3xl font-bold">Weston Smith</h3>
                         <p className="font-mono text-gray-600 mb-4">Chef de Cuisine, Director</p>
                         <p className="font-mono">California-born and New York-trained, Weston is in charge of baking our sourdough bread and creating the menus. (He's friendlier than he looks.)</p>
                     </div>
