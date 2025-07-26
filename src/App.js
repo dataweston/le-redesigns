@@ -190,6 +190,7 @@ const VennDiagram = () => {
     const svgStyle = {
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
       fontSize: '10px',
+      width: '120px',
     };
   
     const circleStyle = {
@@ -369,8 +370,6 @@ const AboutUsPage = () => {
                 <h2 className="text-5xl md:text-7xl font-bold uppercase border-b border-gray-900 pb-4">About Us</h2>
                 <p className="font-mono text-lg max-w-3xl">With 30 years of collective experience, we are passionate about food and hospitality. We believe in quality, handmade products and sourcing the best local ingredients without compromise. We prefer direct communication with our clients.</p>
                 
-                {/* --- VENN DIAGRAM EXAMPLE --- */}
-                <VennDiagram />
 
                 <div className="grid md:grid-cols-2 gap-8">
                     <div className="border border-gray-900 p-8">
@@ -456,7 +455,8 @@ const MealPrepPage = () => (
             <p className="font-mono text-lg max-w-3xl">Basic, good nutrition from local Midwest sources. We offer a Foundation Plan and are happy to create custom plans for any diet.</p>
             
             <div className="border border-gray-900 p-8">
-                <h3 className="text-3xl font-bold mb-4">Foundation Meal Plan</h3>
+                <h3 className="text-3xl font-bold mb-4">Foundation Meal Plan</h3>                <VennDiagram />
+
                 <p className="font-mono mb-6 max-w-2xl">Inspired by the 'Protocol' by Bryan Johnson, this plan provides up to 21 meals/week at ~1800 calories/day. Designed for optimal nutrition and convenience.</p>
                 <div className="grid md:grid-cols-3 gap-px bg-gray-900 border border-gray-900">
                     <div className="bg-[#F5F5F5] p-6">
