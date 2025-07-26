@@ -9,7 +9,7 @@ const sampleMenus = [
     title: "Cabin dinner for 12 in May",
     sections: [
       { course: "Start", items: ["Sourdough focaccia with spring herbs", "Roasted beets over labneh - local beets, fresh strained yogurt, citrus and hazelnut or Asparagus salad, bacon, hazelnut, parmesan", "Agnolotti - fresh pasta filled with ricotta and gouda, served with butter and crispy mushroom, honey"] },
-      { course: "Main", items: ["Rainbow trout (raised in Forest Hills!) wrapped in fennel and broiled cabbage - with asparagus, potato puree or Chicken ballotine with chewy carrots, ramps, sherry jus"] },
+      { course: "Main", items: ["Rainbow trout (raised in Forest Hills!) wrapped in fennel and broweston iled cabbage - with asparagus, potato puree or Chicken ballotine with chewy carrots, ramps, sherry jus"] },
       { course: "Dessert", items: ["Strawberry shortcake"] }
     ]
   },
@@ -324,7 +324,7 @@ const AboutUsPage = () => {
                     <div className="border border-gray-900 p-8">
                         <h3 className="text-3xl font-bold">Weston Smith</h3>
       <Photo 
-            src="/gallery/your-image-name.jpg" 
+            src="/gallery/IMG_3145.jpg" 
             title="Sourdough Focaccia"
             description="Handmade with local flour and spring herbs, served fresh."
           /
