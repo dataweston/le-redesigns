@@ -321,7 +321,7 @@ const HomePage = ({ setActivePage }) => {
             
             {/* --- THIS IS THE CORRECTED PART --- */}
             {/* The 'hidden' and 'md:block' classes have been removed from the div below */}
-            <div className="w-full h-full bg-gray-200 border border-gray-900 p-4">
+            <div className="w-full min-h-[400px] h-full bg-gray-200 border border-gray-900 p-4">
                 <div className="w-full h-full border border-gray-900 bg-cover" style={{backgroundImage: "url('/gallery/IMG_3145.jpg')"}}></div>
             </div>
         </section>
