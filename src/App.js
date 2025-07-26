@@ -327,7 +327,7 @@ const AboutUsPage = () => {
             src="/gallery/IMG_3145.jpg" 
             title="Sourdough Focaccia"
             description="Handmade with local flour and spring herbs, served fresh."
-          /
+          />
                         <p className="font-mono text-gray-600 mb-4">Chef de Cuisine, Director</p>
                         <p className="font-mono">California-born and New York-trained, Weston is in charge of baking our sourdough bread and creating the menus. (He's friendlier than he looks.)</p>
                     </div>
