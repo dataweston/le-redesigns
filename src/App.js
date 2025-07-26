@@ -270,7 +270,7 @@ const HomePage = ({ setActivePage }) => {
                 <button onClick={() => setActivePage('services')} className="mt-8 bg-gray-900 text-white font-mono py-3 px-6 text-lg hover:bg-gray-700">Explore Services</button>
             </div>
             <div className="hidden md:block w-full h-full bg-gray-200 border border-gray-900 p-4">
-                <div className="w-full h-full border border-gray-900 bg-cover" style={{backgroundImage: "url('https://placehold.co/600x800/e5e7eb/111827?text=MN/WI')"}}></div>
+                <div className="w-full h-full border border-gray-900 bg-cover" style={{backgroundImage: "url('/gallery/IMG_3145.jpg')"}}></div>
             </div>
         </section>
 
@@ -323,11 +323,6 @@ const AboutUsPage = () => {
                 <div className="grid md:grid-cols-2 gap-8">
                     <div className="border border-gray-900 p-8">
                         <h3 className="text-3xl font-bold">Weston Smith</h3>
-      <Photo 
-            src="/gallery/IMG_3145.jpg" 
-            title="Sourdough Focaccia"
-            description="Handmade with local flour and spring herbs, served fresh."
-          />
                         <p className="font-mono text-gray-600 mb-4">Chef de Cuisine, Director</p>
                         <p className="font-mono">California-born and New York-trained, Weston is in charge of baking our sourdough bread and creating the menus. (He's friendlier than he looks.)</p>
                     </div>
