@@ -169,7 +169,20 @@ const AnnouncementBar = () => {
     );
 };
 
+// --- NEW, SIMPLE PHOTO COMPONENT ---
+const Photo = ({ src, title, description }) => {
+  if (!src) {
+    return <p className="photo-error">Error: Image source is missing.</p>;
+  }
 
+  return (
+    <div className="photo-container">
+      <img src={src} alt={title || 'An image from the gallery'} className="photo-img" />
+      {title && <h4 className="photo-title">{title}</h4>}
+      {description && <p className="photo-description">{description}</p>}
+    </div>
+  );
+};
 // --- Main App Component ---
 function App() {
   const [activePage, setActivePage] = useState('home');
