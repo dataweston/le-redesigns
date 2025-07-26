@@ -250,9 +250,7 @@ const HomePage = ({ setActivePage }) => {
             </div>
         </section>
 
-        {/* --- EXAMPLE OF NEW PORTFOLIO SECTION ON HOME PAGE --- */}
-        <PortfolioSection />
-      </div>
+        
     </>
   );
 };
