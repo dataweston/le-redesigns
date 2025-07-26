@@ -910,9 +910,9 @@ const Footer = () => {
             <p className="text-gray-600">Roseville, MN | Midwest</p>
         </div>
         <div className="flex space-x-4">
-          <a href="#instagram" className="underline">Instagram</a>
-          <a href="#facebook" className="underline">Facebook</a>
-          <a href="#thumbtack" className="underline">Thumbtack</a>
+          <a href="https://instagram.com/localeffort" className="underline">Instagram</a>
+          <a href="https://facebook.com/localeffort" className="underline">Facebook</a>
+          <a href="https://www.thumbtack.com/mn/saint-paul/personal-chefs/weston-smith/service/429294230165643268" className="underline">Thumbtack</a>
         </div>
       </div>
     </footer>
