@@ -139,6 +139,37 @@ const baseSchema = {
   "image": "https://placehold.co/1200x400/111827/f3f4f6?text=LOCAL+EFFORT"
 };
 
+// --- NEW ANNOUNCEMENT BAR COMPONENT ---
+const AnnouncementBar = () => {
+    const [isOpen, setIsOpen] = useState(false);
+
+    const announcementText = "Website redesign in progress, please excuse the mess.";
+    const popupText = "if all else fails, contact yum@localeffortfood.com or head to our instagram.";
+
+    if (!announcementText) {
+        return null;
+    }
+
+    return (
+        <>
+            <div className="announcement-bar" onClick={() => setIsOpen(true)}>
+                <p>{announcementText}</p>
+            </div>
+            {isOpen && (
+                <div className="shadowbox-overlay" onClick={() => setIsOpen(false)}>
+                    <div className="shadowbox-content" onClick={(e) => e.stopPropagation()}>
+                        <p>{popupText}</p>
+                        <button className="shadowbox-close" onClick={() => setIsOpen(false)}>
+                            &times;
+                        </button>
+                    </div>
+                </div>
+            )}
+        </>
+    );
+};
+
+
 // --- Main App Component ---
 function App() {
   const [activePage, setActivePage] = useState('home');
@@ -157,6 +188,7 @@ function App() {
   return (
     <HelmetProvider>
       <div className="bg-[#F5F5F5] text-gray-900 font-sans antialiased">
+        <AnnouncementBar />
         <Header setActivePage={setActivePage} />
         <main className="p-4 md:p-8 lg:p-16">
           {pages[activePage]}
