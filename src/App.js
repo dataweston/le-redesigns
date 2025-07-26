@@ -190,7 +190,6 @@ const VennDiagram = () => {
     const svgStyle = {
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
       fontSize: '10px',
-      width: '120px',
     };
   
     const circleStyle = {
