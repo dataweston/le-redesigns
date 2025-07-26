@@ -66,3 +66,38 @@ body {
   color: #111827;
   line-height: 1;
 }
+/* --- SIMPLE PHOTO COMPONENT STYLES --- */
+
+.photo-container {
+  border: 1px solid #111827; /* Tailwind gray-900 */
+  padding: 1rem;
+  margin-bottom: 2rem; /* Adds space between photos if you stack them */
+  background-color: #fff;
+}
+
+.photo-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.photo-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+.photo-description {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 1rem;
+  color: #4b5563; /* Tailwind gray-600 */
+}
+
+.photo-error {
+  color: #ef4444; /* Tailwind red-500 */
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  border: 1px solid;
+  padding: 1rem;
+}
