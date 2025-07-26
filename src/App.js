@@ -152,6 +152,7 @@ function App() {
     menu: <MenuPage />,
     pizzaParty: <PizzaPartyPage />,
     pricing: <PricingPage />,
+    portfolio: <PortfolioPage />, // <-- ADD THIS LINE
   };
   
   return (
@@ -188,6 +189,7 @@ const Header = ({ setActivePage }) => {
         />
         <nav className="hidden md:flex items-center space-x-4 font-mono text-sm">
           <a href="#services" onClick={() => handleNavClick('services')} className="hover:bg-gray-900 hover:text-white p-2">Services</a>
+          <a href="#portfolio" onClick={() => handleNavClick('portfolio')} className="hover:bg-gray-900 hover:text-white p-2">Portfolio</a>
           <a href="#pricing" onClick={() => handleNavClick('pricing')} className="hover:bg-gray-900 hover:text-white p-2">Pricing</a>
           <a href="#menu" onClick={() => handleNavClick('menu')} className="hover:bg-gray-900 hover:text-white p-2">Menus</a>
           <a href="#about" onClick={() => handleNavClick('about')} className="hover:bg-gray-900 hover:text-white p-2">About</a>
@@ -199,6 +201,7 @@ const Header = ({ setActivePage }) => {
       {isMenuOpen && (
         <nav className="md:hidden absolute top-full left-0 w-full bg-[#F5F5F5] border-b border-l border-r border-gray-900 font-mono text-center">
           <a href="#services" onClick={() => handleNavClick('services')} className="block p-4 border-t border-gray-300">Services</a>
+          <a href="#portfolio" onClick={() => handleNavClick('portfolio')} className="block p-4 border-t border-gray-300">Portfolio</a>
           <a href="#pricing" onClick={() => handleNavClick('pricing')} className="block p-4 border-t border-gray-300">Pricing</a>
           <a href="#menu" onClick={() => handleNavClick('menu')} className="block p-4 border-t border-gray-300">Menus</a>
           <a href="#about" onClick={() => handleNavClick('about')} className="block p-4 border-t border-gray-300">About</a>
@@ -796,6 +799,88 @@ const PricingPage = () => {
         </>
     );
 };
+
+// --- NEW PORTFOLIO COMPONENTS START ---
+
+const PortfolioCard = ({ src, title, description, index }) => (
+    <div className="group relative border border-gray-900 p-4 space-y-3 flex flex-col transform transition-transform duration-300 ease-in-out hover:-translate-y-1">
+        <div className="overflow-hidden">
+            <img src={src} alt={title} className="w-full h-64 object-cover bg-gray-200 transform transition-transform duration-500 ease-in-out group-hover:scale-105" />
+        </div>
+        <div className="flex-grow">
+            <h3 className="text-2xl font-bold uppercase">{title}</h3>
+            <p className="font-mono text-gray-600">{description}</p>
+        </div>
+        <div className="absolute top-4 right-4 bg-gray-900 text-white w-10 h-10 flex items-center justify-center font-mono text-lg">
+           {index + 1}
+        </div>
+    </div>
+);
+
+const PortfolioPage = () => {
+    const [photos, setPhotos] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        // Check if the script has already been added
+        if (document.querySelector('script[src="/gallery/photos.js"]')) {
+            if (window.photoData) {
+                setPhotos(window.photoData);
+                setLoading(false);
+            }
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = '/gallery/photos.js';
+        script.async = true;
+        script.onload = () => {
+            setPhotos(window.photoData || []);
+            setLoading(false);
+        };
+        script.onerror = () => {
+            console.error("Failed to load photos.js. Make sure the file exists in /public/gallery/");
+            setLoading(false);
+        }
+        document.body.appendChild(script);
+
+        // Cleanup script on component unmount
+        return () => {
+            document.body.removeChild(script);
+        }
+    }, []);
+
+    return (
+        <>
+            <Helmet>
+                <title>Portfolio | Local Effort</title>
+                <meta name="description" content="A gallery of our recent work, from intimate dinners to large event catering." />
+            </Helmet>
+            <div className="space-y-16">
+                <h2 className="text-5xl md:text-7xl font-bold uppercase">Our Work</h2>
+                <p className="font-mono text-lg max-w-3xl">A gallery of dishes, events, and moments we're proud of. Every photo represents our commitment to quality ingredients and memorable hospitality.</p>
+                
+                {loading ? (
+                    <p className="font-mono">Loading photos...</p>
+                ) : photos.length > 0 ? (
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {photos.map((photo, index) => (
+                            <PortfolioCard key={index} index={index} {...photo} />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="border border-gray-900 p-8 text-center">
+                        <h3 className="text-2xl font-bold">Portfolio Coming Soon</h3>
+                        <p className="font-mono mt-2">We are currently curating a collection of our best work. Please check back soon!</p>
+                        <p className="font-mono text-sm mt-4"> (If you are the site owner, make sure you have created `/public/gallery/photos.js` and added photos to it.)</p>
+                    </div>
+                )}
+            </div>
+        </>
+    );
+};
+
+// --- NEW PORTFOLIO COMPONENTS END ---
 
 
 const Footer = () => {
