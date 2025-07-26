@@ -183,6 +183,55 @@ const Photo = ({ src, title, description }) => {
     </div>
   );
 };
+
+// --- NEW VENN DIAGRAM COMPONENT ---
+const VennDiagram = () => {
+    // Style attributes need to be camelCased in JSX
+    const svgStyle = {
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+      fontSize: '10px',
+    };
+  
+    const circleStyle = {
+      mixBlendMode: 'multiply',
+    };
+  
+    const labelStyle = {
+      fontSize: '10px',
+      fontWeight: 'bold',
+      fill: '#000',
+      textAnchor: 'middle',
+    };
+  
+    const centerLabelStyle = {
+      ...labelStyle, // Inherit base label styles
+      fontSize: '8px',
+      fill: '#FFFFFF', // White text for better contrast on dark overlap
+    };
+  
+    return (
+      <svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg" style={svgStyle}>
+        {/* Circles */}
+        <circle cx="115" cy="120" r="50" fill="#fde047" style={circleStyle} />
+        <circle cx="185" cy="120" r="50" fill="#67e8f9" style={circleStyle} />
+        <circle cx="150" cy="70" r="50" fill="#fca5a5" style={circleStyle} />
+  
+        {/* Labels */}
+        <text x="100" y="130" style={labelStyle}>Cost Efficiency</text>
+        <text x="200" y="130" style={labelStyle}>Local Ingredients</text>
+        <text x="150" y="55" style={labelStyle}>Perfect Nutrition</text>
+  
+        {/* Center Label */}
+        <text x="150" y="105" style={centerLabelStyle}>
+          Foundation
+        </text>
+        <text x="150" y="115" style={centerLabelStyle}>
+          Meal Plan
+        </text>
+      </svg>
+    );
+};
+  
 // --- Main App Component ---
 function App() {
   const [activePage, setActivePage] = useState('home');
@@ -269,7 +318,7 @@ const HomePage = ({ setActivePage }) => {
                 <p className="mt-8 font-mono max-w-md">Professional in-home dining. 30 years collective fine food experience. Sourcing the best local ingredients without compromise.</p>
                 <button onClick={() => setActivePage('services')} className="mt-8 bg-gray-900 text-white font-mono py-3 px-6 text-lg hover:bg-gray-700">Explore Services</button>
             </div>
-            <div className="hidden md:block w-full h-full bg-gray-200 border border-gray-900 p-4">
+            <div className="w-full h-full bg-gray-200 border border-gray-900 p-4">
                 <div className="w-full h-full border border-gray-900 bg-cover" style={{backgroundImage: "url('/gallery/IMG_3145.jpg')"}}></div>
             </div>
         </section>
@@ -320,6 +369,9 @@ const AboutUsPage = () => {
                 <h2 className="text-5xl md:text-7xl font-bold uppercase border-b border-gray-900 pb-4">About Us</h2>
                 <p className="font-mono text-lg max-w-3xl">With 30 years of collective experience, we are passionate about food and hospitality. We believe in quality, handmade products and sourcing the best local ingredients without compromise. We prefer direct communication with our clients.</p>
                 
+                {/* --- VENN DIAGRAM EXAMPLE --- */}
+                <VennDiagram />
+
                 <div className="grid md:grid-cols-2 gap-8">
                     <div className="border border-gray-900 p-8">
                         <h3 className="text-3xl font-bold">Weston Smith</h3><Photo 
