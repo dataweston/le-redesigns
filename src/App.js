@@ -98,3 +98,4 @@ const ServiceCard = ({ to, title, description }) => (
         <span className="font-mono text-sm underline">Learn More &rarr;</span>
     </Link>
 );
+export default App;
