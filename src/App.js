@@ -1,5 +1,4 @@
 import React from 'react';
-import { Analytics } from "@vercel/analytics/next"
 import { useState, useEffect } from 'react';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import logo from './logo.png'; // Import the logo
