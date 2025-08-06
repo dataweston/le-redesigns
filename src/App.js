@@ -115,8 +115,253 @@ const VennDiagram = () => {
     );
 };
 
-const CostEstimator = () => { /* ... Full component logic ... */ return <div>Cost Estimator Placeholder</div> };
+const CostEstimator = () => {
+    const [userAnswers, setUserAnswers] = useState({});
+    const [currentQuestionKey, setCurrentQuestionKey] = useState('start');
+    const [questionPath, setQuestionPath] = useState([]);
+    const [finalCost, setFinalCost] = useState(0);
+    const [breakdown, setBreakdown] = useState([]);
+    const [showResults, setShowResults] = useState(false);
+    const [showLeadForm, setShowLeadForm] = useState(false);
+    const [showThankYou, setShowThankYou] = useState(false);
 
+    const questions = {
+        'start': { id: 'serviceType', title: "What kind of service are you looking for?", type: 'options', options: [ { text: "Weekly Meal Plan", value: "mealPlan" }, { text: "Small Event or Party", value: "smallEvent" }, { text: "Intimate Dinner at Home", value: "dinnerAtHome" }, { text: "Pizza Party", value: "pizzaParty" } ], next: (answer) => `${answer}_q1` },
+        'mealPlan_q1': { id: 'numPeople', title: "How many people?", type: 'number', placeholder: "e.g., 2", next: 'mealPlan_q2' },
+        'mealPlan_q2': { id: 'meals', title: "Meals per week?", type: 'multi_number', fields: [ { id: 'breakfasts', label: 'Breakfasts' }, { id: 'lunches', label: 'Lunches' }, { id: 'dinners', label: 'Dinners' } ], next: 'mealPlan_q3' },
+        'mealPlan_q3': { id: 'billing', title: "Billing preference?", type: 'options', options: [ { text: "Weekly", value: "weekly" }, { text: "Monthly (10% off)", value: "monthly" }, { text: "Seasonally (20% off)", value: "seasonal" } ], next: 'end' },
+        'smallEvent_q1': { id: 'numPeople', title: "How many guests?", type: 'number', placeholder: "e.g., 25", next: 'smallEvent_q2' },
+        'dinnerAtHome_q1': { id: 'numPeople', title: "How many guests?", type: 'number', placeholder: "e.g., 4", next: 'smallEvent_q2' },
+        'smallEvent_q2': { id: 'serviceStyle', title: "Service style?", type: 'options', options: [ { text: "Food Drop-off", value: "dropoff" }, { text: "Passed Appetizers", value: "passedApps" }, { text: "Buffet Style", value: "buffet" }, { text: "Buffet & Passed Apps", value: "buffetAndPassed" }, { text: "Plated Meal", value: "plated" } ], next: (answer) => (answer === 'buffet' || answer === 'passedApps' || answer === 'buffetAndPassed') ? 'smallEvent_q3' : 'smallEvent_q4' },
+        'smallEvent_q3': { id: 'portionSize', title: "Portion size?", type: 'options', options: [ { text: "Light snacks", value: "lightSnacks" }, { text: "Substantial (meal replacement)", value: "substantialApps" }, { text: "A full meal", value: "fullMeal" } ], next: 'smallEvent_q4' },
+        'smallEvent_q4': { id: 'sensitivity', title: "Focus for the event?", type: 'options', options: [ { text: "Premium / Unforgettable", value: "quality_sensitive" }, { text: "Budget-friendly / Impressive", value: "price_sensitive" } ], next: 'end' },
+        'pizzaParty_q1': { id: 'numPeople', title: "How many people?", type: 'number', placeholder: "e.g., 20", next: 'pizzaParty_q2' },
+        'pizzaParty_q2': { id: 'addons', title: "Add-ons (salads, etc.)?", type: 'options', options: [ { text: "Yes", value: true }, { text: "No, just pizza", value: false } ], next: (answer) => answer ? 'pizzaParty_q3' : 'end' },
+        'pizzaParty_q3': { id: 'sensitivity', title: "Goal for add-ons?", type: 'options', options: [ { text: "Gourmet & Artisanal", value: "quality_sensitive" }, { text: "Classic & Crowd-pleasing", value: "price_sensitive" } ], next: 'end' }
+    };
+
+    const calculateCost = (answers) => {
+        const type = answers.serviceType;
+        let totalCost = 0;
+        let breakdownCalc = [];
+        const people = parseInt(answers.numPeople) || 1;
+        const model = { mealPlan: { price_per_meal: { breakfast: 13.5, lunch: 18.5, dinner: 24 }, discounts: { couple: 0.1, family: 0.2, monthly: 0.1, seasonal: 0.2 } }, eventBase: { plated: 85, buffet: 55, passedApps: 55, dropoff: 25, buffetAndPassed: 65 }, portionMultiplier: { lightSnacks: 0.8, substantialApps: 1.0, fullMeal: 1.2 }, pizzaParty: { base_fee: 300, per_person_mid: 20, per_person_large: 16, addons_per_person: { low: 10, high: 30 } } };
+        
+        switch(type) {
+            case 'mealPlan':
+                let weeklyCost = ((parseInt(answers.breakfasts) || 0) * model.mealPlan.price_per_meal.breakfast) + ((parseInt(answers.lunches) || 0) * model.mealPlan.price_per_meal.lunch) + ((parseInt(answers.dinners) || 0) * model.mealPlan.price_per_meal.dinner);
+                weeklyCost *= people;
+                breakdownCalc.push(`Weekly meal total for ${people} ${people > 1 ? 'people' : 'person'}: $${weeklyCost.toFixed(2)}`);
+                let coupleDiscount = (people === 2) ? weeklyCost * model.mealPlan.discounts.couple : 0;
+                let familyDiscount = (people >= 4) ? weeklyCost * model.mealPlan.discounts.family : 0;
+                if(coupleDiscount > 0) breakdownCalc.push(`10% discount for two: -$${coupleDiscount.toFixed(2)}`);
+                if(familyDiscount > 0) breakdownCalc.push(`20% discount for family of 4+: -$${familyDiscount.toFixed(2)}`);
+                let costAfterPeopleDiscount = weeklyCost - coupleDiscount - familyDiscount;
+                let billingDiscount = 0;
+                if (answers.billing === 'seasonal') { billingDiscount = costAfterPeopleDiscount * model.mealPlan.discounts.seasonal; breakdownCalc.push(`20% seasonal billing discount: -$${billingDiscount.toFixed(2)}`); }
+                else if (answers.billing === 'monthly') { billingDiscount = costAfterPeopleDiscount * model.mealPlan.discounts.monthly; breakdownCalc.push(`10% monthly billing discount: -$${billingDiscount.toFixed(2)}`); }
+                totalCost = costAfterPeopleDiscount - billingDiscount;
+                break;
+            case 'smallEvent':
+            case 'dinnerAtHome':
+                let basePerPerson = model.eventBase[answers.serviceStyle] || 85;
+                basePerPerson *= (answers.sensitivity === 'price_sensitive' ? 0.9 : 1.2);
+                if (answers.portionSize) { basePerPerson *= model.portionMultiplier[answers.portionSize]; }
+                const getGroupSizeDiscountFactor = (numPeople) => { if (numPeople >= 31) return 0.8; if (numPeople >= 16) return 0.9; if (numPeople >= 6) return 0.95; return 1.0; }
+                const discountFactor = getGroupSizeDiscountFactor(people);
+                const finalPerPerson = basePerPerson * discountFactor;
+                totalCost = finalPerPerson * people;
+                breakdownCalc.push(`Event for ${people} guests: ~$${totalCost.toFixed(2)}`);
+                if(discountFactor < 1) breakdownCalc.push(`Includes a group discount for ${people} guests.`);
+                break;
+            case 'pizzaParty':
+                if (people <= 15) {
+                    totalCost = model.pizzaParty.base_fee;
+                    breakdownCalc.push(`Pizza party for up to 15 guests: $${totalCost.toFixed(2)}`);
+                } else if (people <= 29) {
+                    totalCost = people * model.pizzaParty.per_person_mid;
+                    breakdownCalc.push(`Pizza party for ${people} guests at $${model.pizzaParty.per_person_mid}/person: $${totalCost.toFixed(2)}`);
+                } else { // 30+
+                    totalCost = people * model.pizzaParty.per_person_large;
+                    breakdownCalc.push(`Pizza party for ${people} guests at $${model.pizzaParty.per_person_large}/person: $${totalCost.toFixed(2)}`);
+                }
+
+                if (answers.addons) {
+                    const addonCost = answers.sensitivity === 'price_sensitive' ? model.pizzaParty.addons_per_person.low : model.pizzaParty.addons_per_person.high;
+                    const addonTotal = addonCost * people;
+                    totalCost += addonTotal;
+                    breakdownCalc.push(`Gourmet add-ons for ${people} guests: +$${addonTotal.toFixed(2)}`);
+                }
+                break;
+            default:
+                totalCost = 0;
+        }
+        setFinalCost(totalCost);
+        setBreakdown(breakdownCalc);
+        setShowResults(true);
+    };
+
+    const handleAnswer = (question, value) => {
+        const newAnswers = { ...userAnswers };
+        if (question.type === 'multi_number') { Object.assign(newAnswers, value); } 
+        else { newAnswers[question.id] = value; }
+        setUserAnswers(newAnswers);
+
+        setQuestionPath([...questionPath, currentQuestionKey]);
+        
+        let nextKey = 'end';
+        if (typeof question.next === 'function') { nextKey = question.next(value); } 
+        else { nextKey = question.next; }
+        
+        if (!nextKey || nextKey === 'end') {
+            calculateCost(newAnswers);
+        } else {
+            setCurrentQuestionKey(nextKey);
+        }
+    };
+
+    const goBack = () => {
+        if (questionPath.length === 0) return;
+
+        const newPath = [...questionPath];
+        const previousKey = newPath.pop();
+        
+        setQuestionPath(newPath);
+        setCurrentQuestionKey(previousKey);
+
+        const questionToLeave = questions[previousKey];
+        if (questionToLeave) {
+            const newAnswers = { ...userAnswers };
+            if (questionToLeave.type === 'multi_number') {
+                questionToLeave.fields.forEach(field => delete newAnswers[field.id]);
+            } else {
+                delete newAnswers[questionToLeave.id];
+            }
+            setUserAnswers(newAnswers);
+        }
+    };
+
+    const restart = () => {
+        setUserAnswers({});
+        setCurrentQuestionKey('start');
+        setQuestionPath([]);
+        setFinalCost(0);
+        setBreakdown([]);
+        setShowResults(false);
+        setShowLeadForm(false);
+        setShowThankYou(false);
+    };
+
+    const initiateSquarePayment = () => {
+        const paymentDetails = {
+            amount: finalCost * 100, // Square expects amount in cents
+            currency: 'USD',
+            description: `Personal Chef Service - ${userAnswers.serviceType}`,
+            isRecurring: userAnswers.serviceType === 'mealPlan' && userAnswers.billing !== 'weekly',
+            customerAnswers: userAnswers
+        };
+        console.log("SIMULATING SQUARE PAYMENT. A developer would take this data and send it to a secure server to create a payment link.", paymentDetails);
+        alert("This would connect to Square to process the payment. See the browser console for details.");
+    };
+
+    const currentQData = questions[currentQuestionKey];
+    const totalSteps = userAnswers.serviceType ? {mealPlan: 3, smallEvent: 4, dinnerAtHome: 4, pizzaParty: 3}[userAnswers.serviceType] : 5;
+    const progress = (questionPath.length / totalSteps) * 100;
+
+    if (showResults) {
+        return (
+            <div className="border border-gray-900 p-8 text-center">
+                <h3 className="text-2xl font-bold">All-Inclusive Ballpark Estimate</h3>
+                <p className="font-mono text-gray-600 mb-6">Estimated total for food, service, and fees:</p>
+                <p className="text-6xl font-bold mb-4">${finalCost.toFixed(2)}</p>
+                <div className="bg-gray-200 border border-gray-900 p-4 text-left mb-6 font-mono text-sm space-y-1">
+                    {breakdown.map((item, i) => <p key={i}>- {item}</p>)}
+                    <p className="text-xs text-gray-600 pt-2"><strong>Note:</strong> Final price may vary based on specific menu selections.</p>
+                </div>
+                
+                {!showLeadForm && !showThankYou && (
+                    <div className="space-y-4 sm:space-y-0 sm:space-x-4 sm:flex sm:justify-center">
+                        <button onClick={initiateSquarePayment} className="w-full sm:w-auto bg-gray-900 text-white font-mono py-2 px-4 hover:bg-gray-700">Book Now</button>
+                        <button onClick={() => setShowLeadForm(true)} className="w-full sm:w-auto bg-gray-300 text-gray-900 font-mono py-2 px-4 hover:bg-gray-400">I Need More Info</button>
+                    </div>
+                )}
+
+                {showLeadForm && !showThankYou && (
+                    <div className="mt-6 text-left font-mono">
+                        <h3 className="font-bold text-lg mb-4">Excellent! Provide your details to proceed.</h3>
+                        <div className="space-y-4">
+                            <input type="text" placeholder="Full Name" className="w-full p-3 border border-gray-900 bg-transparent"/>
+                            <input type="email" placeholder="Email Address" className="w-full p-3 border border-gray-900 bg-transparent"/>
+                            <input type="tel" placeholder="Phone Number" className="w-full p-3 border border-gray-900 bg-transparent"/>
+                            <button onClick={() => {
+                                console.log("LEAD CAPTURED (SIMULATED):", {
+                                    name: "User's Name", // In a real app, get this from state
+                                    email: "User's Email",
+                                    phone: "User's Phone",
+                                    quote: finalCost,
+                                    answers: userAnswers
+                                });
+                                setShowThankYou(true);
+                            }} className="w-full bg-gray-900 text-white font-mono py-2 px-4 hover:bg-gray-700">Send My Info</button>
+                        </div>
+                    </div>
+                )}
+                
+                {showThankYou && (
+                     <p className="font-mono text-lg">Thank you! We've received your information and will contact you soon.</p>
+                )}
+
+                <button onClick={restart} className="mt-6 text-sm underline font-mono">Start Over</button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="relative w-full border border-gray-900 p-8 min-h-[400px]">
+            {questionPath.length > 0 && (
+                 <button onClick={goBack} className="absolute top-8 left-8 text-gray-900 font-mono hover:underline">&larr; Back</button>
+            )}
+            <div className="w-full bg-gray-300 h-1 my-8">
+                <div className="bg-gray-900 h-1" style={{ width: `${progress}%`, transition: 'width 0.5s ease-in-out' }}></div>
+            </div>
+            <div>
+                <h2 className="text-3xl font-bold mb-6">{currentQData.title}</h2>
+                {currentQData.type === 'options' && (
+                    <div className="space-y-3 font-mono">
+                        {currentQData.options.map(opt => (
+                            <button key={opt.value.toString()} onClick={() => handleAnswer(currentQData, opt.value)} className="w-full text-left p-4 border border-gray-900 hover:bg-gray-200 block">
+                                {opt.text}
+                            </button>
+                        ))}
+                    </div>
+                )}
+                {currentQData.type === 'number' && (
+                    <div>
+                        <input type="number" id={`input-${currentQData.id}`} placeholder={currentQData.placeholder} className="w-full p-4 text-xl border-b-2 border-gray-900 outline-none bg-transparent font-mono" onKeyPress={(e) => { if (e.key === 'Enter') { handleAnswer(currentQData, e.target.value || '0'); } }}/>
+                        <button onClick={() => handleAnswer(currentQData, document.getElementById(`input-${currentQData.id}`).value || '0')} className="mt-6 bg-gray-900 text-white font-mono py-2 px-4 hover:bg-gray-700">OK</button>
+                    </div>
+                )}
+                 {currentQData.type === 'multi_number' && (
+                    <div className="font-mono space-y-4">
+                        {currentQData.fields.map(field => (
+                             <div key={field.id} className="grid grid-cols-2 items-center gap-4">
+                                 <label htmlFor={`input-${field.id}`} className="text-lg">{field.label}</label>
+                                 <input type="number" id={`input-${field.id}`} placeholder="0" className="p-3 text-lg border-b-2 border-gray-900 outline-none bg-transparent"/>
+                             </div>
+                        ))}
+                        <button onClick={() => {
+                            const multiValue = {};
+                            currentQData.fields.forEach(field => {
+                                multiValue[field.id] = document.getElementById(`input-${field.id}`).value || '0';
+                            });
+                            handleAnswer(currentQData, multiValue);
+                        }} className="mt-6 bg-gray-900 text-white font-mono py-2 px-4 hover:bg-gray-700 !ml-auto !block">OK</button>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
 const Footer = () => {
   return (
     <footer className="p-8 mt-16 border-t border-gray-900 font-mono text-sm">
