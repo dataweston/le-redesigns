@@ -807,9 +807,9 @@ const AppContent = () => {
 // The top-level App component that provides the Router context.
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <AppContent />
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
