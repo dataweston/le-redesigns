@@ -4,20 +4,11 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
-import CrowdfundingTab from "./CrowdfundingTab";
 import logo from './logo.png';
 
 // CrowdfundingTab component (pizza tracker) — START
 function CrowdfundingTab({ goal = 1000, initialFilled = 100 }) {
 import React, { useMemo, useState, useEffect, useRef } from "react";
-
-/**
- * CrowdfundingTab
- * - Goal-driven presale tracker focused on pizzas & pies
- * - SVG pizza with 1,000 slices. Filled slices == contributors (or pizzas sold)
- * - Starts at 100 filled slices so you can preview
- * - Exposes window.addContributors(n) for quick simulation
- */
 export default function CrowdfundingTab({ goal = 1000, initialFilled = 100 }) {
   const TOTAL_SLICES = goal; // 1000 by default
   const [filled, setFilled] = useState(Math.min(initialFilled, TOTAL_SLICES));
