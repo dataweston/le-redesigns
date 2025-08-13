@@ -806,11 +806,7 @@ const AppContent = () => {
 
 // The top-level App component that provides the Router context.
 function App() {
-  return (
-    <HashRouter>
-      <AppContent />
-    </HashRouter>
-  );
+  return <AppContent />;
 }
 
 export default App;
