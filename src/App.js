@@ -4,9 +4,264 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import CrowdfundingTab from "./CrowdfundingTab";
 import logo from './logo.png';
 
-// --- Data (Full data is included for completeness) ---
+// CrowdfundingTab component (pizza tracker) — START
+function CrowdfundingTab({ goal = 1000, initialFilled = 100 }) {
+import React, { useMemo, useState, useEffect, useRef } from "react";
+
+/**
+ * CrowdfundingTab
+ * - Goal-driven presale tracker focused on pizzas & pies
+ * - SVG pizza with 1,000 slices. Filled slices == contributors (or pizzas sold)
+ * - Starts at 100 filled slices so you can preview
+ * - Exposes window.addContributors(n) for quick simulation
+ */
+export default function CrowdfundingTab({ goal = 1000, initialFilled = 100 }) {
+  const TOTAL_SLICES = goal; // 1000 by default
+  const [filled, setFilled] = useState(Math.min(initialFilled, TOTAL_SLICES));
+  const lastFilledRef = useRef(filled);
+
+  // expose a quick test hook for you / your agent logic
+  useEffect(() => {
+    window.addContributors = (n = 1) =>
+      setFilled((c) => Math.min(TOTAL_SLICES, c + Math.max(1, Math.floor(n))));
+    return () => {
+      delete window.addContributors;
+    };
+  }, [TOTAL_SLICES]);
+
+  // track which indices just changed so we can animate them
+  const justAdded = useMemo(() => {
+    const prev = lastFilledRef.current;
+    const now = filled;
+    lastFilledRef.current = now;
+    if (now <= prev) return new Set();
+    const s = new Set();
+    for (let i = prev; i < now; i++) s.add(i);
+    return s;
+  }, [filled]);
+
+  // geometry (kept tiny for performance):
+  const size = 360; // viewBox size
+  const cx = size / 2;
+  const cy = size / 2;
+  const R = 160; // outer radius (pizza edge)
+  const r = 70; // inner radius (creates a hub so wedges look clean)
+  const crust = 175; // slightly bigger circle for crust glow
+  const dTheta = (2 * Math.PI) / TOTAL_SLICES;
+
+  const slices = useMemo(() => {
+    const arr = new Array(TOTAL_SLICES);
+    for (let i = 0; i < TOTAL_SLICES; i++) {
+      const a0 = i * dTheta - Math.PI / 2; // rotate so first slice starts at top
+      const a1 = (i + 1) * dTheta - Math.PI / 2;
+      const x0 = cx + R * Math.cos(a0);
+      const y0 = cy + R * Math.sin(a0);
+      const x1 = cx + R * Math.cos(a1);
+      const y1 = cy + R * Math.sin(a1);
+      const xi1 = cx + r * Math.cos(a1);
+      const yi1 = cy + r * Math.sin(a1);
+      const xi0 = cx + r * Math.cos(a0);
+      const yi0 = cy + r * Math.sin(a0);
+      // small arc flags for 1000-slice pizza
+      const large = 0;
+      const sweepOuter = 1;
+      const sweepInner = 0;
+      const d = `M ${x0} ${y0} A ${R} ${R} 0 ${large} ${sweepOuter} ${x1} ${y1} L ${xi1} ${yi1} A ${r} ${r} 0 ${large} ${sweepInner} ${xi0} ${yi0} Z`;
+      arr[i] = d;
+    }
+    return arr;
+  }, [TOTAL_SLICES, dTheta, cx, cy, R, r]);
+
+  const pct = Math.round((filled / TOTAL_SLICES) * 1000) / 10; // 0.1% precision
+
+  return (
+    <div className="w-full h-full flex flex-col gap-6 p-4">
+      {/* Header / KPIs */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="text-2xl font-semibold">Presale Crowdfunding</div>
+        <div className="flex items-center gap-6 text-sm">
+          <Stat label="Pizzas Goal" value={TOTAL_SLICES.toLocaleString()} />
+          <Stat label="Pizzas Sold" value={filled.toLocaleString()} />
+          <Stat label="Progress" value={`${pct}%`} />
+        </div>
+      </div>
+
+      {/* Tabs local to this feature (Products / Tracker) */}
+      <LocalTabs
+        tabs={["Products", "Pizza Tracker"]}
+        render={({ active }) => (
+          <div className="rounded-2xl shadow p-4 bg-white">
+            {active === 0 ? (
+              <ProductsPanel onQuickBuy={() => setFilled((c) => Math.min(c + 1, TOTAL_SLICES))} />
+            ) : (
+              <div className="grid md:grid-cols-2 gap-6 items-center">
+                <div className="flex flex-col gap-4">
+                  <div className="text-lg font-medium">Pizza Progress (1,000 slices)</div>
+                  <div className="text-sm opacity-70">
+                    Each filled wedge = 1 presold pizza. Starts at 100 to preview. Call <code>addContributors(n)</code> in the console or use the + buttons.
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="px-3 py-2 rounded-xl bg-black text-white" onClick={() => setFilled((c) => Math.min(TOTAL_SLICES, c + 1))}>+1</button>
+                    <button className="px-3 py-2 rounded-xl bg-black text-white" onClick={() => setFilled((c) => Math.min(TOTAL_SLICES, c + 10))}>+10</button>
+                    <button className="px-3 py-2 rounded-xl bg-black text-white" onClick={() => setFilled((c) => Math.min(TOTAL_SLICES, c + 100))}>+100</button>
+                    <button className="px-3 py-2 rounded-xl bg-neutral-200" onClick={() => setFilled(0)}>Reset</button>
+                  </div>
+                  <ProgressBar value={filled} max={TOTAL_SLICES} />
+                </div>
+                <div className="flex items-center justify-center">
+                  <PizzaSVG
+                    size={size}
+                    cx={cx}
+                    cy={cy}
+                    R={R}
+                    inner={r}
+                    crust={crust}
+                    paths={slices}
+                    filled={filled}
+                    justAdded={justAdded}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      />
+    </div>
+  );
+}
+
+function Stat({ label, value }) {
+  return (
+    <div className="flex flex-col items-start">
+      <div className="text-xs uppercase tracking-wide opacity-60">{label}</div>
+      <div className="text-base font-semibold">{value}</div>
+    </div>
+  );
+}
+
+function ProgressBar({ value, max }) {
+  const pct = Math.min(100, Math.round((value / max) * 100));
+  return (
+    <div className="w-full h-3 rounded-full bg-neutral-200 overflow-hidden">
+      <div
+        className="h-full bg-black transition-[width] duration-500"
+        style={{ width: `${pct}%` }}
+      />
+    </div>
+  );
+}
+
+function LocalTabs({ tabs, render }) {
+  const [active, setActive] = useState(0);
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex gap-2">
+        {tabs.map((t, i) => (
+          <button
+            key={t}
+            onClick={() => setActive(i)}
+            className={`px-3 py-2 rounded-xl border ${
+              i === active ? "bg-black text-white border-black" : "bg-white border-neutral-300"
+            }`}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+      {render({ active })}
+    </div>
+  );
+}
+
+function ProductsPanel({ onQuickBuy }) {
+  return (
+    <div className="grid md:grid-cols-3 gap-4">
+      <ProductCard
+        title="Pizza Presale"
+        desc="One 12\" artisan pizza voucher. Redeem later."
+        price="$20"
+        onBuy={onQuickBuy}
+      />
+      <ProductCard
+        title="Pie Presale"
+        desc="One 9\" seasonal pie voucher. Redeem later."
+        price="$24"
+        onBuy={onQuickBuy}
+      />
+      <ProductCard
+        title="Supporter Pack"
+        desc="Sticker + thank-you wall mention."
+        price="$10"
+        onBuy={onQuickBuy}
+      />
+    </div>
+  );
+}
+
+function ProductCard({ title, desc, price, onBuy }) {
+  return (
+    <div className="rounded-2xl border border-neutral-200 p-4 flex flex-col gap-3">
+      <div className="text-lg font-semibold">{title}</div>
+      <div className="text-sm opacity-70">{desc}</div>
+      <div className="mt-auto flex items-center justify-between">
+        <div className="font-semibold">{price}</div>
+        <button className="px-3 py-2 rounded-xl bg-black text-white" onClick={onBuy}>Prebuy</button>
+      </div>
+    </div>
+  );
+}
+
+function PizzaSVG({ size, cx, cy, R, inner, crust, paths, filled, justAdded }) {
+  return (
+    <svg
+      viewBox={`0 0 ${size} ${size}`}
+      width={size}
+      height={size}
+      className="drop-shadow-sm"
+    >
+      {/* subtle crust halo */}
+      <circle cx={cx} cy={cy} r={crust} fill="#f2d3a0" opacity="0.25" />
+      {/* base (cheese) */}
+      <circle cx={cx} cy={cy} r={R} fill="#f4cf5d" stroke="#e1b44d" strokeWidth="2" />
+      {/* hub */}
+      <circle cx={cx} cy={cy} r={inner} fill="#f4cf5d" />
+
+      {/* slices */}
+      <g>
+        {paths.map((d, i) => {
+          const isFilled = i < filled;
+          const highlight = justAdded.has(i);
+          return (
+            <path
+              key={i}
+              d={d}
+              fill={isFilled ? "#d35435" : "transparent"}
+              stroke={"#9c2d11"}
+              strokeWidth={isFilled ? 0.4 : 0.2}
+              opacity={isFilled ? 1 : 0.1}
+              style={{
+                transition: "opacity 300ms ease, stroke-width 300ms ease",
+                filter: highlight ? "drop-shadow(0 0 6px rgba(255,80,0,0.6))" : "none",
+              }}
+            />
+          );
+        })}
+      </g>
+
+      {/* center label */}
+      <g>
+        <circle cx={cx} cy={cy} r={inner - 8} fill="white" stroke="#ddd" />
+        <text x={cx} y={cy - 6} textAnchor="middle" fontSize="28" fontWeight="700">{filled}</text>
+        <text x={cx} y={cy + 18} textAnchor="middle" fontSize="12" opacity="0.7">/ {paths.length}</text>
+      </g>
+    </svg>
+  );
+}
+}
+// CrowdfundingTab component — END
 const sampleMenus = [
   {
     title: "Cabin dinner for 12 in May",
@@ -398,6 +653,7 @@ function App() {
             <Route path="/menu" element={<MenuPage />} />
             <Route path="/pizza-party" element={<PizzaPartyPage />} />
             <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/crowdfunding" element={<CrowdfundingTab goal={1000} initialFilled={100} />} />
           </Routes>
         </main>
         <Footer />
@@ -422,6 +678,8 @@ const Header = () => {
           <Link to="/pricing" className="hover:bg-gray-900 hover:text-white p-2">Pricing</Link>
           <Link to="/menu" className="hover:bg-gray-900 hover:text-white p-2">Menus</Link>
           <Link to="/about" className="hover:bg-gray-900 hover:text-white p-2">About</Link>
+          <Link to="/crowdfunding">Crowdfunding</Link>
+
         </nav>
         <button className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
