@@ -12,6 +12,14 @@ function CrowdfundingTab({ goal = 1000, initialFilled = 100 }) {
   const [filled, setFilled] = useState(Math.min(initialFilled, TOTAL_SLICES));
   const lastFilledRef = useRef();
 
+  const [funders, setFunders] = useState(["Alex", "Jordan", "Casey"]);
+  function handleEmailSubmit(e) {
+    e.preventDefault();
+    // handle email submission logic here
+    console.log("Email captured for:", e.target.elements[0].value);
+    alert("Thank you for signing up!");
+  }
+
   // expose a quick test hook for you / your agent logic
   useEffect(() => {
     window.addContributors = (n = 1) =>
@@ -143,7 +151,7 @@ function ProgressBar({ value, max }) {
   );
 }
 
-<div className="flex flex-col gap-12 p-4">
+return<div className="flex flex-col gap-12 p-4">
 
   {/* Pizza Tracker Section */}
   <section className="flex flex-col md:flex-row gap-6 items-center">
@@ -221,12 +229,6 @@ function ProgressBar({ value, max }) {
   </section>
 
 </div>
-const [funders, setFunders] = useState(["Alex", "Jordan", "Casey"]);
-function handleEmailSubmit(e) {
-  e.preventDefault();
-  // handle email submission logic here
-}
-
 
 function ProductsPanel({ onQuickBuy }) {
   return (
