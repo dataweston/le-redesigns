@@ -190,7 +190,9 @@ function PizzaSVG({ size, goal, filled }) {
   const dTheta = (2 * Math.PI) / goal;
   
   const slices = useMemo(() => {
-    return Array.from({ length: goal }, (_, i) => {
+    // Only calculate as many slices as needed to avoid performance issues with large goals
+    const renderCount = Math.min(goal, 2000); 
+    return Array.from({ length: renderCount }, (_, i) => {
       const a0 = i * dTheta - Math.PI / 2;
       const a1 = (i + 1) * dTheta - Math.PI / 2;
       const x0 = cx + R * Math.cos(a0), y0 = cy + R * Math.sin(a0);
@@ -223,7 +225,7 @@ function PizzaSVG({ size, goal, filled }) {
       </g>
       
       <g>
-        {slices.slice(0, Math.max(0, filled + 20)).map((d, i) => { // Render a few extra for smooth filling
+        {slices.map((d, i) => {
           const isFilled = i < filled;
           return (
             <path
@@ -428,7 +430,7 @@ const CostEstimator = () => {
         const people = parseInt(answers.numPeople) || 1;
         // Simplified cost model for demonstration
         switch(answers.serviceType) {
-            case 'mealPlan': totalCost = people * ((answers.breakfasts || 0) * 15 + (answers.lunches || 0) * 20 + (answers.dinners || 0) * 25); break;
+            case 'mealPlan': totalCost = people * ((parseInt(answers.breakfasts) || 0) * 15 + (parseInt(answers.lunches) || 0) * 20 + (parseInt(answers.dinners) || 0) * 25); break;
             case 'smallEvent': totalCost = people * 75; break;
             case 'dinnerAtHome': totalCost = people * 120; break;
             case 'pizzaParty': totalCost = 300 + (people > 15 ? (people - 15) * 18 : 0); break;
@@ -487,6 +489,23 @@ const CostEstimator = () => {
                 <div>
                     <input type="number" id={`input-${currentQData.id}`} placeholder={currentQData.placeholder} className="w-full p-4 text-xl border-b-2 border-gray-900 outline-none bg-transparent font-mono" onKeyPress={(e) => { if (e.key === 'Enter') { handleAnswer(currentQData, e.target.value || '0'); } }}/>
                     <button onClick={() => handleAnswer(currentQData, document.getElementById(`input-${currentQData.id}`).value || '0')} className="mt-6 bg-gray-900 text-white font-mono py-2 px-4 hover:bg-gray-700">OK</button>
+                </div>
+            )}
+            {currentQData.type === 'multi_number' && (
+                <div className="font-mono space-y-4">
+                    {currentQData.fields.map(field => (
+                         <div key={field.id} className="grid grid-cols-2 items-center gap-4">
+                             <label htmlFor={`input-${field.id}`} className="text-lg">{field.label}</label>
+                             <input type="number" id={`input-${field.id}`} placeholder="0" className="p-3 text-lg border-b-2 border-gray-900 outline-none bg-transparent"/>
+                         </div>
+                    ))}
+                    <button onClick={() => {
+                        const multiValue = {};
+                        currentQData.fields.forEach(field => {
+                            multiValue[field.id] = document.getElementById(`input-${field.id}`).value || '0';
+                        });
+                        handleAnswer(currentQData, multiValue);
+                    }} className="mt-6 bg-gray-900 text-white font-mono py-2 px-4 hover:bg-gray-700 !ml-auto !block">OK</button>
                 </div>
             )}
         </div>
