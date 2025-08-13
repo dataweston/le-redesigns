@@ -531,7 +531,7 @@ const HomePage = () => {
                 <button onClick={() => navigate('/services')} className="mt-8 bg-gray-900 text-white font-mono py-3 px-6 text-lg hover:bg-gray-700">Explore Services</button>
             </div>
             <div className="w-full min-h-[400px] h-full bg-gray-200 border border-gray-900 p-4">
-                <div className="w-full h-full border border-gray-900 bg-cover bg-center" style={{backgroundImage: "url('/public/gallery/IMG_3145.jpg')"}}></div>
+                <div className="w-full h-full border border-gray-900 bg-cover bg-center" style={{backgroundImage: "url('/IMG_3145.jpg')"}}></div>
             </div>
         </section>
         <section>
