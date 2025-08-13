@@ -171,13 +171,13 @@ function ProductsPanel({ onQuickBuy }) {
     <div className="grid md:grid-cols-3 gap-4">
       <ProductCard
         title="Pizza Presale"
-        desc="One 12\" artisan pizza voucher."
+        desc='One 12\" artisan pizza voucher.'
         price="$20"
         onBuy={onQuickBuy}
       />
       <ProductCard
         title="Pie Presale"
-        desc="One 9\" seasonal pie voucher."
+        desc='One 9\" seasonal pie voucher.'
         price="$24"
         onBuy={onQuickBuy}
       />
