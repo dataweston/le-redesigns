@@ -4,12 +4,11 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import logo from './logo.png';
 
 // CrowdfundingTab component (pizza tracker) — START
 function CrowdfundingTab({ goal = 1000, initialFilled = 100 }) {
-import React, { useMemo, useState, useEffect, useRef } from "react";
-export default function CrowdfundingTab({ goal = 1000, initialFilled = 100 }) {
   const TOTAL_SLICES = goal; // 1000 by default
   const [filled, setFilled] = useState(Math.min(initialFilled, TOTAL_SLICES));
   const lastFilledRef = useRef(filled);
