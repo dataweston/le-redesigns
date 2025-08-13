@@ -171,13 +171,13 @@ function ProductsPanel({ onQuickBuy }) {
     <div className="grid md:grid-cols-3 gap-4">
       <ProductCard
         title="Pizza Presale"
-        desc="One 12\" artisan pizza voucher. Redeem later."
+        desc="One 12\" artisan pizza voucher."
         price="$20"
         onBuy={onQuickBuy}
       />
       <ProductCard
         title="Pie Presale"
-        desc="One 9\" seasonal pie voucher. Redeem later."
+        desc="One 9\" seasonal pie voucher."
         price="$24"
         onBuy={onQuickBuy}
       />
@@ -250,7 +250,7 @@ function PizzaSVG({ size, cx, cy, R, inner, crust, paths, filled, justAdded }) {
     </svg>
   );
 }
-}
+
 // CrowdfundingTab component — END
 const sampleMenus = [
   {
