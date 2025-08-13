@@ -7,20 +7,20 @@ import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import logo from './logo.png';
 
 // CrowdfundingTab component (pizza tracker) — START
-function CrowdfundingTab({ goal = 1000, initialFilled = 100 }) {
-  const TOTAL_SLICES = goal; // 1000 by default
-  const [filled, setFilled] = useState(Math.min(initialFilled, TOTAL_SLICES));
-  const lastFilledRef = useRef();
+// ✅ REPLACE your old CrowdfundingTab with this one.
 
+function CrowdfundingTab({ goal = 1000, initialFilled = 100 }) {
+  const TOTAL_SLICES = goal;
+  const [filled, setFilled] = useState(Math.min(initialFilled, TOTAL_SLICES));
+  const lastFilledRef = useRef(filled);
+
+  // State and handlers are now correctly inside the component
   const [funders, setFunders] = useState(["Alex", "Jordan", "Casey"]);
   function handleEmailSubmit(e) {
     e.preventDefault();
-    // handle email submission logic here
-    console.log("Email captured for:", e.target.elements[0].value);
     alert("Thank you for signing up!");
   }
 
-  // expose a quick test hook for you / your agent logic
   useEffect(() => {
     window.addContributors = (n = 1) =>
       setFilled((c) => Math.min(TOTAL_SLICES, c + Math.max(1, Math.floor(n))));
@@ -29,7 +29,6 @@ function CrowdfundingTab({ goal = 1000, initialFilled = 100 }) {
     };
   }, [TOTAL_SLICES]);
 
-  // track which indices just changed so we can animate them
   const justAdded = useMemo(() => {
     const prev = lastFilledRef.current;
     const now = filled;
@@ -40,95 +39,91 @@ function CrowdfundingTab({ goal = 1000, initialFilled = 100 }) {
     return s;
   }, [filled]);
 
-  // geometry (kept tiny for performance):
-  const size = 360; // viewBox size
-  const cx = size / 2;
-  const cy = size / 2;
-  const R = 160; // outer radius (pizza edge)
-  const r = 70; // inner radius (creates a hub so wedges look clean)
-  const crust = 175; // slightly bigger circle for crust glow
+  // Geometry for the Pizza SVG
+  const size = 360, cx = size / 2, cy = size / 2, R = 160, r = 70, crust = 175;
   const dTheta = (2 * Math.PI) / TOTAL_SLICES;
-
   const slices = useMemo(() => {
     const arr = new Array(TOTAL_SLICES);
     for (let i = 0; i < TOTAL_SLICES; i++) {
-      const a0 = i * dTheta - Math.PI / 2; // rotate so first slice starts at top
-      const a1 = (i + 1) * dTheta - Math.PI / 2;
-      const x0 = cx + R * Math.cos(a0);
-      const y0 = cy + R * Math.sin(a0);
-      const x1 = cx + R * Math.cos(a1);
-      const y1 = cy + R * Math.sin(a1);
-      const xi1 = cx + r * Math.cos(a1);
-      const yi1 = cy + r * Math.sin(a1);
-      const xi0 = cx + r * Math.cos(a0);
-      const yi0 = cy + r * Math.sin(a0);
-      // small arc flags for 1000-slice pizza
-      const large = 0;
-      const sweepOuter = 1;
-      const sweepInner = 0;
-      const d = `M ${x0} ${y0} A ${R} ${R} 0 ${large} ${sweepOuter} ${x1} ${y1} L ${xi1} ${yi1} A ${r} ${r} 0 ${large} ${sweepInner} ${xi0} ${yi0} Z`;
+      const a0 = i * dTheta - Math.PI / 2, a1 = (i + 1) * dTheta - Math.PI / 2;
+      const x0 = cx + R * Math.cos(a0), y0 = cy + R * Math.sin(a0);
+      const x1 = cx + R * Math.cos(a1), y1 = cy + R * Math.sin(a1);
+      const xi1 = cx + r * Math.cos(a1), yi1 = cy + r * Math.sin(a1);
+      const xi0 = cx + r * Math.cos(a0), yi0 = cy + r * Math.sin(a0);
+      const d = `M ${x0} ${y0} A ${R} ${R} 0 0 1 ${x1} ${y1} L ${xi1} ${yi1} A ${r} ${r} 0 0 0 ${xi0} ${yi0} Z`;
       arr[i] = d;
     }
     return arr;
   }, [TOTAL_SLICES, dTheta, cx, cy, R, r]);
 
-  const pct = Math.round((filled / TOTAL_SLICES) * 1000) / 10; // 0.1% precision
-
+  // This is the new, correct return statement with all your features.
   return (
-    <div className="w-full h-full flex flex-col gap-6 p-4">
-      {/* Header / KPIs */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="text-2xl font-semibold">Presale Crowdfunding</div>
-        <div className="flex items-center gap-6 text-sm">
-          <Stat label="Pizzas Goal" value={TOTAL_SLICES.toLocaleString()} />
-          <Stat label="Pizzas Sold" value={filled.toLocaleString()} />
-          <Stat label="Progress" value={`${pct}%`} />
-        </div>
-      </div>
+    <div className="flex flex-col gap-12 p-4">
 
-      {/* Tabs local to this feature (Products / Tracker) */}
-      <LocalTabs
-        tabs={["Products", "Pizza Tracker"]}
-        render={({ active }) => (
-          <div className="rounded-2xl shadow p-4 bg-white">
-            {active === 0 ? (
-              <ProductsPanel onQuickBuy={() => setFilled((c) => Math.min(c + 1, TOTAL_SLICES))} />
-            ) : (
-              <div className="grid md:grid-cols-2 gap-6 items-center">
-                <div className="flex flex-col gap-4">
-                  <div className="text-lg font-medium">Pizza Progress (1,000 slices)</div>
-                  <div className="text-sm opacity-70">
-                    Each filled wedge = 1 presold pizza. Starts at 100 to preview. Call <code>addContributors(n)</code> in the console or use the + buttons.
-                  </div>
-                  <div className="flex gap-2">
-                    <button className="px-3 py-2 rounded-xl bg-black text-white" onClick={() => setFilled((c) => Math.min(TOTAL_SLICES, c + 1))}>+1</button>
-                    <button className="px-3 py-2 rounded-xl bg-black text-white" onClick={() => setFilled((c) => Math.min(TOTAL_SLICES, c + 10))}>+10</button>
-                    <button className="px-3 py-2 rounded-xl bg-black text-white" onClick={() => setFilled((c) => Math.min(TOTAL_SLICES, c + 100))}>+100</button>
-                    <button className="px-3 py-2 rounded-xl bg-neutral-200" onClick={() => setFilled(0)}>Reset</button>
-                  </div>
-                  <ProgressBar value={filled} max={TOTAL_SLICES} />
-                </div>
-                <div className="flex items-center justify-center">
-                  <PizzaSVG
-                    size={size}
-                    cx={cx}
-                    cy={cy}
-                    R={R}
-                    inner={r}
-                    crust={crust}
-                    paths={slices}
-                    filled={filled}
-                    justAdded={justAdded}
-                  />
-                </div>
-              </div>
-            )}
+      {/* Pizza Tracker Section */}
+      <section className="flex flex-col md:flex-row gap-6 items-center">
+        <div className="flex-1 flex flex-col gap-4">
+          <h2 className="text-2xl font-bold">Our goal is to sell a thousand pizzas</h2>
+          <p className="text-sm opacity-70">
+            Each filled slice below represents a presold pizza. Your support brings us closer to our goal!
+          </p>
+          <ProgressBar value={filled} max={TOTAL_SLICES} />
+          <div className="flex gap-2">
+            <button className="px-3 py-2 rounded-xl bg-black text-white" onClick={() => setFilled(c => Math.min(TOTAL_SLICES, c + 1))}>+1</button>
+            <button className="px-3 py-2 rounded-xl bg-black text-white" onClick={() => setFilled(c => Math.min(TOTAL_SLICES, c + 10))}>+10</button>
+            <button className="px-3 py-2 rounded-xl bg-black text-white" onClick={() => setFilled(c => Math.min(TOTAL_SLICES, c + 100))}>+100</button>
           </div>
-        )}
-      />
+        </div>
+        <div className="flex-1 flex justify-center">
+          <PizzaSVG
+            size={size} cx={cx} cy={cy} R={R} inner={r} crust={crust}
+            paths={slices} filled={filled} justAdded={justAdded}
+          />
+        </div>
+      </section>
+
+      {/* Our Story */}
+      <section>
+        <h3 className="text-xl font-semibold mb-2">Our Story</h3>
+        <p className="text-sm opacity-80">
+          We're a team of passionate chefs with a dream to open a community kitchen. This presale helps us purchase essential equipment and secure a location. Every pizza sold gets us one step closer!
+        </p>
+      </section>
+
+      {/* Funders Wall */}
+      <section>
+        <h3 className="text-xl font-semibold mb-2">Celebrating Our Funders</h3>
+        <div className="flex flex-wrap gap-2">
+          {funders.map(name => (
+            <span key={name} className="px-2 py-1 bg-neutral-200 rounded-full text-xs">{name}</span>
+          ))}
+        </div>
+      </section>
+
+      {/* Email Signup */}
+      <section>
+        <h3 className="text-xl font-semibold mb-2">Keep Me Updated</h3>
+        <form onSubmit={handleEmailSubmit} className="flex gap-2">
+          <input type="email" placeholder="you@example.com" className="flex-1 border rounded-xl px-3 py-2" />
+          <button type="submit" className="px-3 py-2 bg-black text-white rounded-xl">Sign Up</button>
+        </form>
+      </section>
+
+      {/* Fundraiser Assets */}
+      <section>
+        <h3 className="text-xl font-semibold mb-2">Fundraiser Assets</h3>
+        <p className="text-sm opacity-70 mb-4">
+          Your purchase supports our mission directly. Choose a pizza, a pie, or a supporter pack.
+        </p>
+        <ProductsPanel onQuickBuy={() => setFilled(c => Math.min(c + 1, TOTAL_SLICES))} />
+      </section>
+
     </div>
   );
 }
+
+  const pct = Math.round((filled / TOTAL_SLICES) * 1000) / 10; // 0.1% precision
+
 
 function Stat({ label, value }) {
   return (
@@ -151,84 +146,7 @@ function ProgressBar({ value, max }) {
   );
 }
 
-return<div className="flex flex-col gap-12 p-4">
 
-  {/* Pizza Tracker Section */}
-  <section className="flex flex-col md:flex-row gap-6 items-center">
-    <div className="flex-1 flex flex-col gap-4">
-      <h2 className="text-2xl font-bold">Our goal is to sell a thousand pizzas</h2>
-      <p className="text-sm opacity-70">
-        Each filled slice below represents a presold pizza. Your support brings us closer to our goal!
-      </p>
-      <ProgressBar value={filled} max={TOTAL_SLICES} />
-      <div className="flex gap-2">
-        <button className="px-3 py-2 rounded-xl bg-black text-white" onClick={() => setFilled(c => Math.min(TOTAL_SLICES, c + 1))}>+1</button>
-        <button className="px-3 py-2 rounded-xl bg-black text-white" onClick={() => setFilled(c => Math.min(TOTAL_SLICES, c + 10))}>+10</button>
-        <button className="px-3 py-2 rounded-xl bg-black text-white" onClick={() => setFilled(c => Math.min(TOTAL_SLICES, c + 100))}>+100</button>
-      </div>
-    </div>
-    <div className="flex-1 flex justify-center">
-      <PizzaSVG
-        size={size}
-        cx={cx}
-        cy={cy}
-        R={R}
-        inner={r}
-        crust={crust}
-        paths={slices}
-        filled={filled}
-        justAdded={justAdded}
-      />
-    </div>
-  </section>
-
-  {/* Our Story */}
-  <section>
-    <h3 className="text-xl font-semibold mb-2">Our Story</h3>
-    <p className="text-sm opacity-80">
-      [Short, heartfelt narrative about the team, why pizza, and how this fundraiser supports your mission.]
-    </p>
-  </section>
-
-  {/* Our Goals */}
-  <section>
-    <h3 className="text-xl font-semibold mb-2">Our Goals</h3>
-    <ul className="list-disc list-inside text-sm opacity-80 space-y-1">
-      <li>Sell 1,000 pizzas by [date]</li>
-      <li>Support local farmers and suppliers</li>
-      <li>Open our new community kitchen space</li>
-    </ul>
-  </section>
-
-  {/* Funders Wall */}
-  <section>
-    <h3 className="text-xl font-semibold mb-2">Celebrating Our Funders</h3>
-    <div className="flex flex-wrap gap-2">
-      {funders.map(name => (
-        <span key={name} className="px-2 py-1 bg-neutral-200 rounded-full text-xs">{name}</span>
-      ))}
-    </div>
-  </section>
-
-  {/* Email Signup */}
-  <section>
-    <h3 className="text-xl font-semibold mb-2">Keep Me Updated</h3>
-    <form onSubmit={handleEmailSubmit} className="flex gap-2">
-      <input type="email" placeholder="you@example.com" className="flex-1 border rounded-xl px-3 py-2" />
-      <button className="px-3 py-2 bg-black text-white rounded-xl">Sign Up</button>
-    </form>
-  </section>
-
-  {/* Fundraiser Assets */}
-  <section>
-    <h3 className="text-xl font-semibold mb-2">Fundraiser Assets</h3>
-    <p className="text-sm opacity-70 mb-4">
-      Your purchase supports our mission directly. Choose a pizza, a pie, or a supporter pack.
-    </p>
-    <ProductsPanel onQuickBuy={() => setFilled(c => Math.min(c + 1, TOTAL_SLICES))} />
-  </section>
-
-</div>
 
 function ProductsPanel({ onQuickBuy }) {
   return (
