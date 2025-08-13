@@ -3,7 +3,7 @@
 import React from 'react';
 import { useState, useEffect, useMemo } from 'react';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
-import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Using a placeholder for the logo to resolve build errors in this environment.
