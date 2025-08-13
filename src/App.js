@@ -122,7 +122,6 @@ function CrowdfundingTab({ goal = 1000, initialFilled = 100 }) {
   );
 }
 
-  const pct = Math.round((filled / TOTAL_SLICES) * 1000) / 10; // 0.1% precision
 
 
 function Stat({ label, value }) {
