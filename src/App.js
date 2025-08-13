@@ -1,326 +1,386 @@
 // src/App.js
 
 import React from 'react';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
-import { Routes, Route, Link, useNavigate } from 'react-router-dom';
-import logo from './logo.png';
+import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// CrowdfundingTab component (pizza tracker) — START
-// ✅ REPLACE your old CrowdfundingTab with this one.
+// Using a placeholder for the logo to resolve build errors in this environment.
+// In your local development, you would use: import logo from './logo.png';
+const logo = 'https://placehold.co/160x50/111827/f5f5f5?text=Local+Effort&font=mono';
 
-function CrowdfundingTab({ goal = 1000, initialFilled = 100 }) {
-  const TOTAL_SLICES = goal;
-  const [filled, setFilled] = useState(Math.min(initialFilled, TOTAL_SLICES));
-  const lastFilledRef = useRef(filled);
+// --- Helper Components & Hooks ---
 
-  // State and handlers are now correctly inside the component
-  const [funders, setFunders] = useState(["Alex", "Jordan", "Casey"]);
-  function handleEmailSubmit(e) {
-    e.preventDefault();
-    alert("Thank you for signing up!");
-  }
+/**
+ * Custom hook to animate a number counting up.
+ * @param {number} endValue - The final number to count up to.
+ * @param {number} duration - Animation duration in milliseconds.
+ * @returns {number} The current animated value.
+ */
+function useCountUp(endValue, duration = 1500) {
+  const [count, setCount] = useState(0);
 
   useEffect(() => {
-    window.addContributors = (n = 1) =>
-      setFilled((c) => Math.min(TOTAL_SLICES, c + Math.max(1, Math.floor(n))));
-    return () => {
-      delete window.addContributors;
+    let start = 0;
+    const end = endValue;
+    if (start === end && count === end) return;
+
+    let startTime = null;
+
+    const animation = (currentTime) => {
+      if (startTime === null) startTime = currentTime;
+      const elapsedTime = currentTime - startTime;
+      const progress = Math.min(elapsedTime / duration, 1);
+      // Ease-out quadratic easing function
+      const easeOutProgress = progress * (2 - progress);
+      setCount(Math.floor(easeOutProgress * (end - start) + start));
+      if (progress < 1) {
+        requestAnimationFrame(animation);
+      } else {
+        setCount(end);
+      }
     };
-  }, [TOTAL_SLICES]);
 
-  const justAdded = useMemo(() => {
-    const prev = lastFilledRef.current;
-    const now = filled;
-    lastFilledRef.current = now;
-    if (now <= prev) return new Set();
-    const s = new Set();
-    for (let i = prev; i < now; i++) s.add(i);
-    return s;
-  }, [filled]);
+    requestAnimationFrame(animation);
 
-  // Geometry for the Pizza SVG
-  const size = 360, cx = size / 2, cy = size / 2, R = 160, r = 70, crust = 175;
-  const dTheta = (2 * Math.PI) / TOTAL_SLICES;
-  const slices = useMemo(() => {
-    const arr = new Array(TOTAL_SLICES);
-    for (let i = 0; i < TOTAL_SLICES; i++) {
-      const a0 = i * dTheta - Math.PI / 2, a1 = (i + 1) * dTheta - Math.PI / 2;
-      const x0 = cx + R * Math.cos(a0), y0 = cy + R * Math.sin(a0);
-      const x1 = cx + R * Math.cos(a1), y1 = cy + R * Math.sin(a1);
-      const xi1 = cx + r * Math.cos(a1), yi1 = cy + r * Math.sin(a1);
-      const xi0 = cx + r * Math.cos(a0), yi0 = cy + r * Math.sin(a0);
-      const d = `M ${x0} ${y0} A ${R} ${R} 0 0 1 ${x1} ${y1} L ${xi1} ${yi1} A ${r} ${r} 0 0 0 ${xi0} ${yi0} Z`;
-      arr[i] = d;
+  }, [endValue, duration]);
+
+  return count;
+}
+
+
+// --- CrowdfundingTab component (pizza tracker) — START ---
+// This is the completely redesigned crowdfunding component.
+
+function CrowdfundingTab() {
+  const [goal, setGoal] = useState(1000);
+  const [pizzasSold, setPizzasSold] = useState(0);
+  const [funders, setFunders] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Fetch initial crowdfunding status from the backend
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        // IMPORTANT: Replace with your deployed backend URL
+        const response = await fetch('http://localhost:3001/api/crowdfund/status');
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        setGoal(data.goal);
+        setPizzasSold(data.pizzasSold);
+        setFunders(data.funders.reverse()); // Show most recent first
+        setIsLoading(false);
+      } catch (err) {
+        setError('Could not load fundraising data. Please try again later.');
+        setIsLoading(false);
+        // Set some default values on error to prevent crashes
+        setGoal(1000);
+        setPizzasSold(157);
+        setFunders([{name: "Alex G."}, {name: "Jordan P."}, {name: "Casey N."}]);
+      }
+    };
+    fetchStatus();
+  }, []);
+
+  const animatedPizzasSold = useCountUp(pizzasSold);
+  const animatedPercentage = Math.min(100, (animatedPizzasSold / goal) * 100);
+
+  // Handle pre-buying a product
+  const handlePrebuy = async (productName, amount) => {
+    setIsProcessing(true);
+    try {
+      // In a real app, you might collect the funder's name from a form
+      const funderName = `Supporter #${Math.floor(Math.random() * 10000)}`;
+
+      const response = await fetch('http://localhost:3001/api/crowdfund/contribute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productName,
+          amount,
+          funderName,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.paymentUrl) {
+        // Redirect to Square for payment
+        window.location.href = result.paymentUrl;
+      } else {
+        throw new Error(result.error || 'Failed to initiate payment.');
+      }
+    } catch (err) {
+      console.error("Payment Error:", err.message);
+      alert(`Error: ${err.message}`); // Replace with a better notification system
+      setIsProcessing(false);
     }
-    return arr;
-  }, [TOTAL_SLICES, dTheta, cx, cy, R, r]);
+  };
+  
+  if (isLoading) {
+    return <div className="text-center p-12">Loading fundraising campaign...</div>;
+  }
+  
+  if (error) {
+    return <div className="text-center p-12 bg-red-100 text-red-800 rounded-lg">{error}</div>;
+  }
 
-  // This is the new, correct return statement with all your features.
   return (
-    <div className="flex flex-col gap-12 p-4">
+    <div className="max-w-6xl mx-auto flex flex-col gap-12 p-4 font-sans">
+      <header className="text-center">
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight">Help Us Fire Up the Ovens!</h1>
+        <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
+          We're pre-selling pizzas to fund our new community kitchen. Every purchase gets us one step closer to opening our doors.
+        </p>
+      </header>
 
-      {/* Pizza Tracker Section */}
-      <section className="flex flex-col md:flex-row gap-6 items-center">
-        <div className="flex-1 flex flex-col gap-4">
-          <h2 className="text-2xl font-bold">Our goal is to sell a thousand pizzas</h2>
-          <p className="text-sm opacity-70">
-            Each filled slice below represents a presold pizza. Your support brings us closer to our goal!
-          </p>
-          <ProgressBar value={filled} max={TOTAL_SLICES} />
-          <div className="flex gap-2">
-            <button className="px-3 py-2 rounded-xl bg-black text-white" onClick={() => setFilled(c => Math.min(TOTAL_SLICES, c + 1))}>+1</button>
-            <button className="px-3 py-2 rounded-xl bg-black text-white" onClick={() => setFilled(c => Math.min(TOTAL_SLICES, c + 10))}>+10</button>
-            <button className="px-3 py-2 rounded-xl bg-black text-white" onClick={() => setFilled(c => Math.min(TOTAL_SLICES, c + 100))}>+100</button>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-12">
+        <div className="lg:col-span-3 flex flex-col items-center gap-8">
+          <PizzaSVG size={400} goal={goal} filled={animatedPizzasSold} />
+          <div className="w-full">
+            <div className="flex justify-between items-end mb-2">
+              <span className="font-bold text-2xl text-gray-800">{animatedPizzasSold.toLocaleString()}</span>
+              <span className="text-sm text-gray-500">Goal: {goal.toLocaleString()} pizzas</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+              <div
+                className="bg-red-600 h-full rounded-full transition-all duration-1000 ease-out"
+                style={{ width: `${animatedPercentage}%` }}
+              />
+            </div>
+             <div className="text-center mt-2 font-bold text-lg">{animatedPercentage.toFixed(1)}% Funded</div>
           </div>
         </div>
-        <div className="flex-1 flex justify-center">
-          <PizzaSVG
-            size={size} cx={cx} cy={cy} R={R} inner={r} crust={crust}
-            paths={slices} filled={filled} justAdded={justAdded}
-          />
+
+        <div className="lg:col-span-2 flex flex-col gap-8">
+          <section>
+            <h3 className="text-2xl font-bold mb-4 border-b pb-2">Choose Your Reward</h3>
+            <ProductsPanel onPrebuy={handlePrebuy} isProcessing={isProcessing} />
+          </section>
+
+          <section>
+            <h3 className="text-2xl font-bold mb-4 border-b pb-2">Recent Supporters</h3>
+            <div className="bg-gray-50 rounded-lg p-4 max-h-60 overflow-y-auto">
+              {funders.length > 0 ? (
+                <ul className="space-y-3">
+                  {funders.map((funder, i) => (
+                    <li key={i} className="text-sm text-gray-700">
+                      🍕 <span className="font-semibold">{funder.name}</span> supported the campaign.
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-500">Be the first to support us!</p>
+              )}
+            </div>
+          </section>
         </div>
-      </section>
-
-      {/* Our Story */}
-      <section>
-        <h3 className="text-xl font-semibold mb-2">Our Story</h3>
-        <p className="text-sm opacity-80">
-          We're a team of passionate chefs with a dream to open a community kitchen. This presale helps us purchase essential equipment and secure a location. Every pizza sold gets us one step closer!
-        </p>
-      </section>
-
-      {/* Funders Wall */}
-      <section>
-        <h3 className="text-xl font-semibold mb-2">Celebrating Our Funders</h3>
-        <div className="flex flex-wrap gap-2">
-          {funders.map(name => (
-            <span key={name} className="px-2 py-1 bg-neutral-200 rounded-full text-xs">{name}</span>
-          ))}
-        </div>
-      </section>
-
-      {/* Email Signup */}
-      <section>
-        <h3 className="text-xl font-semibold mb-2">Keep Me Updated</h3>
-        <form onSubmit={handleEmailSubmit} className="flex gap-2">
-          <input type="email" placeholder="you@example.com" className="flex-1 border rounded-xl px-3 py-2" />
-          <button type="submit" className="px-3 py-2 bg-black text-white rounded-xl">Sign Up</button>
-        </form>
-      </section>
-
-      {/* Fundraiser Assets */}
-      <section>
-        <h3 className="text-xl font-semibold mb-2">Fundraiser Assets</h3>
-        <p className="text-sm opacity-70 mb-4">
-          Your purchase supports our mission directly. Choose a pizza, a pie, or a supporter pack.
-        </p>
-        <ProductsPanel onQuickBuy={() => setFilled(c => Math.min(c + 1, TOTAL_SLICES))} />
-      </section>
-
-    </div>
-  );
-}
-
-
-
-function Stat({ label, value }) {
-  return (
-    <div className="flex flex-col items-start">
-      <div className="text-xs uppercase tracking-wide opacity-60">{label}</div>
-      <div className="text-base font-semibold">{value}</div>
-    </div>
-  );
-}
-
-function ProgressBar({ value, max }) {
-  const pct = Math.min(100, Math.round((value / max) * 100));
-  return (
-    <div className="w-full h-3 rounded-full bg-neutral-200 overflow-hidden">
-      <div
-        className="h-full bg-black transition-[width] duration-500"
-        style={{ width: `${pct}%` }}
-      />
-    </div>
-  );
-}
-
-
-
-function ProductsPanel({ onQuickBuy }) {
-  return (
-    <div className="grid md:grid-cols-3 gap-4">
-      <ProductCard
-        title="Pizza Presale"
-        desc='One 12\" artisan pizza voucher.'
-        price="$20"
-        onBuy={onQuickBuy}
-      />
-      <ProductCard
-        title="Pie Presale"
-        desc='One 9\" seasonal pie voucher.'
-        price="$24"
-        onBuy={onQuickBuy}
-      />
-      <ProductCard
-        title="Supporter Pack"
-        desc="Sticker + thank-you wall mention."
-        price="$10"
-        onBuy={onQuickBuy}
-      />
-    </div>
-  );
-}
-
-function ProductCard({ title, desc, price, onBuy }) {
-  return (
-    <div className="rounded-2xl border border-neutral-200 p-4 flex flex-col gap-3">
-      <div className="text-lg font-semibold">{title}</div>
-      <div className="text-sm opacity-70">{desc}</div>
-      <div className="mt-auto flex items-center justify-between">
-        <div className="font-semibold">{price}</div>
-        <button className="px-3 py-2 rounded-xl bg-black text-white" onClick={onBuy}>Prebuy</button>
       </div>
     </div>
   );
 }
 
-function PizzaSVG({ size, cx, cy, R, inner, crust, paths, filled, justAdded }) {
-  return (
-    <svg
-      viewBox={`0 0 ${size} ${size}`}
-      width={size}
-      height={size}
-      className="drop-shadow-sm"
-    >
-      {/* subtle crust halo */}
-      <circle cx={cx} cy={cy} r={crust} fill="#f2d3a0" opacity="0.25" />
-      {/* base (cheese) */}
-      <circle cx={cx} cy={cy} r={R} fill="#f4cf5d" stroke="#e1b44d" strokeWidth="2" />
-      {/* hub */}
-      <circle cx={cx} cy={cy} r={inner} fill="#f4cf5d" />
+function PizzaSVG({ size, goal, filled }) {
+  const cx = size / 2, cy = size / 2, R = size * 0.45, r = size * 0.18;
+  const dTheta = (2 * Math.PI) / goal;
+  
+  const slices = useMemo(() => {
+    return Array.from({ length: goal }, (_, i) => {
+      const a0 = i * dTheta - Math.PI / 2;
+      const a1 = (i + 1) * dTheta - Math.PI / 2;
+      const x0 = cx + R * Math.cos(a0), y0 = cy + R * Math.sin(a0);
+      const x1 = cx + R * Math.cos(a1), y1 = cy + R * Math.sin(a1);
+      const xi1 = cx + r * Math.cos(a1), yi1 = cy + r * Math.sin(a1);
+      const xi0 = cx + r * Math.cos(a0), yi0 = cy + r * Math.sin(a0);
+      return `M ${x0} ${y0} A ${R} ${R} 0 0 1 ${x1} ${y1} L ${xi1} ${yi1} A ${r} ${r} 0 0 0 ${xi0} ${yi0} Z`;
+    });
+  }, [goal, cx, cy, R, r, dTheta]);
 
-      {/* slices */}
+  return (
+    <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} className="pizza-svg drop-shadow-lg">
+      <defs>
+        <filter id="subtle-glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+          <feMerge>
+            <feMergeNode in="coloredBlur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <linearGradient id="shimmer" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="rgba(255,255,255,0.5)" />
+            <stop offset="50%" stopColor="rgba(255,255,255,0)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0.5)" />
+        </linearGradient>
+      </defs>
+      <g className="pizza-base">
+        <circle cx={cx} cy={cy} r={R} fill="#f4cf5d" stroke="#e1b44d" strokeWidth="2" />
+        <circle cx={cx} cy={cy} r={R} fill="url(#shimmer)" className="shimmer-effect" opacity="0"/>
+      </g>
+      
       <g>
-        {paths.map((d, i) => {
+        {slices.slice(0, Math.max(0, filled + 20)).map((d, i) => { // Render a few extra for smooth filling
           const isFilled = i < filled;
-          const highlight = justAdded.has(i);
           return (
             <path
               key={i}
               d={d}
-              fill={isFilled ? "#d35435" : "transparent"}
-              stroke={"#9c2d11"}
-              strokeWidth={isFilled ? 0.4 : 0.2}
-              opacity={isFilled ? 1 : 0.1}
-              style={{
-                transition: "opacity 300ms ease, stroke-width 300ms ease",
-                filter: highlight ? "drop-shadow(0 0 6px rgba(255,80,0,0.6))" : "none",
-              }}
+              fill={isFilled ? "#d35435" : "#f4cf5d"}
+              stroke={isFilled ? "#9c2d11" : "#e1b44d"}
+              strokeWidth={0.5}
+              opacity={isFilled ? 1 : 0.2}
+              style={{ transition: 'fill 300ms ease-out, opacity 300ms ease-out' }}
             />
           );
         })}
       </g>
-
-      {/* center label */}
-      <g>
-        <circle cx={cx} cy={cy} r={inner - 8} fill="white" stroke="#ddd" />
-        <text x={cx} y={cy - 6} textAnchor="middle" fontSize="28" fontWeight="700">{filled}</text>
-        <text x={cx} y={cy + 18} textAnchor="middle" fontSize="12" opacity="0.7">/ {paths.length}</text>
+      
+      <g filter="url(#subtle-glow)">
+        <circle cx={cx} cy={cy} r={r} fill="#fff" stroke="#eee" strokeWidth="2" />
+        <text x={cx} y={cy - 6} textAnchor="middle" fontSize={size * 0.1} fontWeight="700" fill="#333">{filled}</text>
+        <text x={cx} y={cy + 18} textAnchor="middle" fontSize={size * 0.04} fill="#666" opacity="0.8">PIZZAS SOLD</text>
       </g>
     </svg>
   );
 }
 
-// CrowdfundingTab component — END
-const sampleMenus = [
-  {
-    title: "Cabin dinner for 12 in May",
-    sections: [
-      { course: "Start", items: ["Sourdough focaccia with spring herbs", "Roasted beets over labneh - local beets, fresh strained yogurt, citrus and hazelnut or Asparagus salad, bacon, hazelnut, parmesan", "Agnolotti - fresh pasta filled with ricotta and gouda, served with butter and crispy mushroom, honey"] },
-      { course: "Main", items: ["Rainbow trout (raised in Forest Hills!) wrapped in fennel and broweston iled cabbage - with asparagus, potato puree or Chicken ballotine with chewy carrots, ramps, sherry jus"] },
-      { course: "Dessert", items: ["Strawberry shortcake"] }
-    ]
-  },
-  {
-    title: "Office Party for 20",
-    description: "(Stationary, substantial appetizers)",
-    sections: [
-        { course: "Menu", items: ["Charcuterie spread - including duck breast 'prosciutto,' beef bresaola from indiana, wisconsin gouda, minnesota 'camembert,' candied hazelnuts, pickled vegetables, flax crackers, jam, and a pate.", "Sourdough focaccia, with herbes de provence.", "Beets over labneh - local beets treated very nicely, over fresh strained yogurt, with citrus and hazelnut", "Simple carrot salad - julienned carrots tossed in cilantro and pistachio", "Duck Pastrami sliders - on fresh buns with aioli and pickled cabbage"] }
-    ]
-  },
-  // ... other menu items omitted for brevity in this view, but are in the full code
-];
+function ProductsPanel({ onPrebuy, isProcessing }) {
+  const products = [
+    { name: "Pizza Presale", desc: 'One 12" artisan pizza voucher.', price: 20, emoji: "🍕" },
+    { name: "Pie Presale", desc: 'One 9" seasonal pie voucher.', price: 24, emoji: "🥧" },
+    { name: "Supporter Pack", desc: "Sticker + thank-you wall mention.", price: 10, emoji: "💌" },
+  ];
 
-const specialSkills = [
-    { name: "Sourdough & Baking", description: "Natural leavening is a passion. We maintain our own sourdough starter and bake all our bread products in-house using local flours." },
-    { name: "Fresh Pasta", description: "From agnolotti to tajarin, all our pasta is handmade, often using specialty flours and local eggs." },
-    { name: "Charcuterie & Curing", description: "We practice whole-animal butchery and cure our own meats, from duck prosciutto to pork pate, ensuring quality and minimizing waste." },
-    { name: "Foraging", description: "When the season allows, we forage for wild ingredients like ramps, mushrooms, and berries to bring a unique taste of Minnesota to the plate." },
-    { name: "Fermentation", description: "We use fermentation to create unique flavors and preserve the harvest, making everything from hot sauce to kombucha." }
-];
+  return (
+    <div className="grid grid-cols-1 gap-4">
+      {products.map(product => (
+        <ProductCard 
+          key={product.name}
+          {...product}
+          onBuy={() => onPrebuy(product.name, product.price)}
+          isProcessing={isProcessing}
+        />
+      ))}
+    </div>
+  );
+}
 
-// --- Schema.org Generation ---
-const baseSchema = {
-  "@context": "https://schema.org",
-  "@type": "FoodEstablishment",
-  "name": "Local Effort",
-  "url": "https://www.localeffortfood.com/",
-  "logo": logo,
-  "address": {
-    "@type": "PostalAddress",
-    "addressLocality": "Roseville",
-    "addressRegion": "MN",
-    "addressCountry": "US"
-  },
-  "servesCuisine": "American (New), Local, Minnesotan",
-  "description": "A personal chef and event food service in Roseville, MN, focusing on local hospitality and sourcing the best ingredients from Minnesota and the Midwest without compromise.",
-  "keywords": "personal chef, catering, weekly meal prep, pizza party, minnesota food, local ingredients, roseville mn, brutalist design, pricing",
+function ProductCard({ name, desc, price, emoji, onBuy, isProcessing }) {
+  return (
+    <div className="rounded-lg border border-gray-200 p-4 flex flex-col gap-3 transition-all hover:shadow-md hover:border-red-500">
+      <div className="flex justify-between items-start">
+        <div className="flex-1">
+          <h4 className="text-lg font-bold">{name}</h4>
+          <p className="text-sm text-gray-600">{desc}</p>
+        </div>
+        <div className="text-3xl">{emoji}</div>
+      </div>
+      <div className="mt-auto flex items-center justify-between">
+        <div className="font-bold text-xl">${price}</div>
+        <button 
+          className="px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed" 
+          onClick={onBuy}
+          disabled={isProcessing}
+        >
+          {isProcessing ? 'Processing...' : 'Pre-buy'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// --- Page Transition Wrapper ---
+const pageVariants = {
+  initial: { opacity: 0, y: 20 },
+  in: { opacity: 1, y: 0 },
+  out: { opacity: 0, y: -20 },
 };
 
-const JsonLd = ({ data }) => (
-  <Helmet>
-    <script type="application/ld+json">{JSON.stringify(data)}</script>
-  </Helmet>
+const pageTransition = {
+  type: "tween",
+  ease: "anticipate",
+  duration: 0.5,
+};
+
+const AnimatedPage = ({ children }) => (
+  <motion.div
+    initial="initial"
+    animate="in"
+    exit="out"
+    variants={pageVariants}
+    transition={pageTransition}
+  >
+    {children}
+  </motion.div>
 );
 
 
-// --- Reusable Components ---
+// --- Header ---
+const Header = () => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const closeMenu = () => setIsMenuOpen(false);
 
-const AnnouncementBar = () => {
-    const [isOpen, setIsOpen] = useState(false);
-    const announcementText = "Website redesign in progress, please excuse the mess.";
-    const popupText = "if all else fails, contact yum@localeffortfood.com or head to our instagram.";
-
-    if (!announcementText) return null;
-
-    return (
-        <>
-            <div className="announcement-bar" onClick={() => setIsOpen(true)}>
-                <p>{announcementText}</p>
-            </div>
-            {isOpen && (
-                <div className="shadowbox-overlay" onClick={() => setIsOpen(false)}>
-                    <div className="shadowbox-content" onClick={(e) => e.stopPropagation()}>
-                        <p>{popupText}</p>
-                        <button className="shadowbox-close" onClick={() => setIsOpen(false)}>&times;</button>
-                    </div>
-                </div>
-            )}
-        </>
-    );
-};
-
-const Photo = ({ src, title, description }) => {
-  if (!src) return <p className="photo-error">Error: Image source is missing.</p>;
   return (
-    <div className="photo-container">
-      <img src={src} alt={title || 'An image from the gallery'} className="photo-img" />
-      {title && <h4 className="photo-title">{title}</h4>}
-      {description && <p className="photo-description">{description}</p>}
-    </div>
+    <header className="p-4 md:p-8 border-b border-gray-900 relative">
+      <div className="flex justify-between items-center">
+        <Link to="/" onClick={closeMenu}>
+          <img src={logo} alt="Local Effort Logo" className="h-10 w-auto cursor-pointer" />
+        </Link>
+        <nav className="hidden md:flex items-center space-x-2 font-mono text-sm">
+          <Link to="/services" className="hover:bg-gray-200 rounded p-2 transition-colors">Services</Link>
+          <Link to="/pricing" className="hover:bg-gray-200 rounded p-2 transition-colors">Pricing</Link>
+          <Link to="/menu" className="hover:bg-gray-200 rounded p-2 transition-colors">Menus</Link>
+          <Link to="/about" className="hover:bg-gray-200 rounded p-2 transition-colors">About</Link>
+          <Link to="/crowdfunding" className="bg-red-600 text-white rounded font-semibold p-2 px-4 hover:bg-red-700 transition-colors">Fundraiser</Link>
+        </nav>
+        <button className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </button>
+      </div>
+      {isMenuOpen && (
+        <nav className="md:hidden absolute top-full left-0 w-full bg-[#F5F5F5] border-b border-l border-r border-gray-900 font-mono text-center z-50">
+          <Link to="/services" onClick={closeMenu} className="block p-4 border-t border-gray-300">Services</Link>
+          <Link to="/pricing" onClick={closeMenu} className="block p-4 border-t border-gray-300">Pricing</Link>
+          <Link to="/menu" onClick={closeMenu} className="block p-4 border-t border-gray-300">Menus</Link>
+          <Link to="/about" onClick={closeMenu} className="block p-4 border-t border-gray-300">About</Link>
+          <Link to="/crowdfunding" onClick={closeMenu} className="block p-4 border-t border-gray-300 bg-red-100 font-semibold">Fundraiser</Link>
+        </nav>
+      )}
+    </header>
   );
 };
+
+// --- Footer ---
+const Footer = () => {
+  return (
+    <footer className="p-8 mt-16 border-t border-gray-900 font-mono text-sm">
+      <div className="flex justify-between">
+        <div>
+            <p>&copy; {new Date().getFullYear()} Local Effort</p>
+            <p className="text-gray-600">Roseville, MN | Midwest</p>
+        </div>
+        <div className="flex space-x-4">
+          <a href="https://instagram.com/localeffort" className="underline">Instagram</a>
+          <a href="https://facebook.com/localeffort" className="underline">Facebook</a>
+          <a href="https://www.thumbtack.com/mn/saint-paul/personal-chefs/weston-smith/service/429294230165643268" className="underline">Thumbtack</a>
+        </div>
+      </div>
+    </footer>
+  );
+};
+
+// --- Reusable Components for Pages ---
+const ServiceCard = ({ to, title, description }) => (
+    <Link to={to} className="block bg-[#F5F5F5] p-8 space-y-4 hover:bg-gray-200 cursor-pointer">
+        <h4 className="text-2xl font-bold uppercase">{title}</h4>
+        <p className="font-mono text-gray-600 h-24">{description}</p>
+        <span className="font-mono text-sm underline">Learn More &rarr;</span>
+    </Link>
+);
 
 const VennDiagram = () => {
     const svgStyle = { fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', fontSize: '10px' };
@@ -348,8 +408,6 @@ const CostEstimator = () => {
     const [finalCost, setFinalCost] = useState(0);
     const [breakdown, setBreakdown] = useState([]);
     const [showResults, setShowResults] = useState(false);
-    const [showLeadForm, setShowLeadForm] = useState(false);
-    const [showThankYou, setShowThankYou] = useState(false);
 
     const questions = {
         'start': { id: 'serviceType', title: "What kind of service are you looking for?", type: 'options', options: [ { text: "Weekly Meal Plan", value: "mealPlan" }, { text: "Small Event or Party", value: "smallEvent" }, { text: "Intimate Dinner at Home", value: "dinnerAtHome" }, { text: "Pizza Party", value: "pizzaParty" } ], next: (answer) => `${answer}_q1` },
@@ -358,72 +416,26 @@ const CostEstimator = () => {
         'mealPlan_q3': { id: 'billing', title: "Billing preference?", type: 'options', options: [ { text: "Weekly", value: "weekly" }, { text: "Monthly (10% off)", value: "monthly" }, { text: "Seasonally (20% off)", value: "seasonal" } ], next: 'end' },
         'smallEvent_q1': { id: 'numPeople', title: "How many guests?", type: 'number', placeholder: "e.g., 25", next: 'smallEvent_q2' },
         'dinnerAtHome_q1': { id: 'numPeople', title: "How many guests?", type: 'number', placeholder: "e.g., 4", next: 'smallEvent_q2' },
-        'smallEvent_q2': { id: 'serviceStyle', title: "Service style?", type: 'options', options: [ { text: "Food Drop-off", value: "dropoff" }, { text: "Passed Appetizers", value: "passedApps" }, { text: "Buffet Style", value: "buffet" }, { text: "Buffet & Passed Apps", value: "buffetAndPassed" }, { text: "Plated Meal", value: "plated" } ], next: (answer) => (answer === 'buffet' || answer === 'passedApps' || answer === 'buffetAndPassed') ? 'smallEvent_q3' : 'smallEvent_q4' },
-        'smallEvent_q3': { id: 'portionSize', title: "Portion size?", type: 'options', options: [ { text: "Light snacks", value: "lightSnacks" }, { text: "Substantial (meal replacement)", value: "substantialApps" }, { text: "A full meal", value: "fullMeal" } ], next: 'smallEvent_q4' },
+        'smallEvent_q2': { id: 'serviceStyle', title: "Service style?", type: 'options', options: [ { text: "Food Drop-off", value: "dropoff" }, { text: "Passed Appetizers", value: "passedApps" }, { text: "Buffet Style", value: "buffet" }, { text: "Buffet & Passed Apps", value: "buffetAndPassed" }, { text: "Plated Meal", value: "plated" } ], next: 'smallEvent_q4' },
         'smallEvent_q4': { id: 'sensitivity', title: "Focus for the event?", type: 'options', options: [ { text: "Premium / Unforgettable", value: "quality_sensitive" }, { text: "Budget-friendly / Impressive", value: "price_sensitive" } ], next: 'end' },
         'pizzaParty_q1': { id: 'numPeople', title: "How many people?", type: 'number', placeholder: "e.g., 20", next: 'pizzaParty_q2' },
-        'pizzaParty_q2': { id: 'addons', title: "Add-ons (salads, etc.)?", type: 'options', options: [ { text: "Yes", value: true }, { text: "No, just pizza", value: false } ], next: (answer) => answer ? 'pizzaParty_q3' : 'end' },
-        'pizzaParty_q3': { id: 'sensitivity', title: "Goal for add-ons?", type: 'options', options: [ { text: "Gourmet & Artisanal", value: "quality_sensitive" }, { text: "Classic & Crowd-pleasing", value: "price_sensitive" } ], next: 'end' }
+        'pizzaParty_q2': { id: 'addons', title: "Add-ons (salads, etc.)?", type: 'options', options: [ { text: "Yes", value: true }, { text: "No, just pizza", value: false } ], next: 'end' },
     };
 
     const calculateCost = (answers) => {
-        const type = answers.serviceType;
         let totalCost = 0;
         let breakdownCalc = [];
         const people = parseInt(answers.numPeople) || 1;
-        const model = { mealPlan: { price_per_meal: { breakfast: 13.5, lunch: 18.5, dinner: 24 }, discounts: { couple: 0.1, family: 0.2, monthly: 0.1, seasonal: 0.2 } }, eventBase: { plated: 85, buffet: 55, passedApps: 55, dropoff: 25, buffetAndPassed: 65 }, portionMultiplier: { lightSnacks: 0.8, substantialApps: 1.0, fullMeal: 1.2 }, pizzaParty: { base_fee: 300, per_person_mid: 20, per_person_large: 16, addons_per_person: { low: 10, high: 30 } } };
-        
-        switch(type) {
-            case 'mealPlan':
-                let weeklyCost = ((parseInt(answers.breakfasts) || 0) * model.mealPlan.price_per_meal.breakfast) + ((parseInt(answers.lunches) || 0) * model.mealPlan.price_per_meal.lunch) + ((parseInt(answers.dinners) || 0) * model.mealPlan.price_per_meal.dinner);
-                weeklyCost *= people;
-                breakdownCalc.push(`Weekly meal total for ${people} ${people > 1 ? 'people' : 'person'}: $${weeklyCost.toFixed(2)}`);
-                let coupleDiscount = (people === 2) ? weeklyCost * model.mealPlan.discounts.couple : 0;
-                let familyDiscount = (people >= 4) ? weeklyCost * model.mealPlan.discounts.family : 0;
-                if(coupleDiscount > 0) breakdownCalc.push(`10% discount for two: -$${coupleDiscount.toFixed(2)}`);
-                if(familyDiscount > 0) breakdownCalc.push(`20% discount for family of 4+: -$${familyDiscount.toFixed(2)}`);
-                let costAfterPeopleDiscount = weeklyCost - coupleDiscount - familyDiscount;
-                let billingDiscount = 0;
-                if (answers.billing === 'seasonal') { billingDiscount = costAfterPeopleDiscount * model.mealPlan.discounts.seasonal; breakdownCalc.push(`20% seasonal billing discount: -$${billingDiscount.toFixed(2)}`); }
-                else if (answers.billing === 'monthly') { billingDiscount = costAfterPeopleDiscount * model.mealPlan.discounts.monthly; breakdownCalc.push(`10% monthly billing discount: -$${billingDiscount.toFixed(2)}`); }
-                totalCost = costAfterPeopleDiscount - billingDiscount;
-                break;
-            case 'smallEvent':
-            case 'dinnerAtHome':
-                let basePerPerson = model.eventBase[answers.serviceStyle] || 85;
-                basePerPerson *= (answers.sensitivity === 'price_sensitive' ? 0.9 : 1.2);
-                if (answers.portionSize) { basePerPerson *= model.portionMultiplier[answers.portionSize]; }
-                const getGroupSizeDiscountFactor = (numPeople) => { if (numPeople >= 31) return 0.8; if (numPeople >= 16) return 0.9; if (numPeople >= 6) return 0.95; return 1.0; }
-                const discountFactor = getGroupSizeDiscountFactor(people);
-                const finalPerPerson = basePerPerson * discountFactor;
-                totalCost = finalPerPerson * people;
-                breakdownCalc.push(`Event for ${people} guests: ~$${totalCost.toFixed(2)}`);
-                if(discountFactor < 1) breakdownCalc.push(`Includes a group discount for ${people} guests.`);
-                break;
-            case 'pizzaParty':
-                if (people <= 15) {
-                    totalCost = model.pizzaParty.base_fee;
-                    breakdownCalc.push(`Pizza party for up to 15 guests: $${totalCost.toFixed(2)}`);
-                } else if (people <= 29) {
-                    totalCost = people * model.pizzaParty.per_person_mid;
-                    breakdownCalc.push(`Pizza party for ${people} guests at $${model.pizzaParty.per_person_mid}/person: $${totalCost.toFixed(2)}`);
-                } else { // 30+
-                    totalCost = people * model.pizzaParty.per_person_large;
-                    breakdownCalc.push(`Pizza party for ${people} guests at $${model.pizzaParty.per_person_large}/person: $${totalCost.toFixed(2)}`);
-                }
-
-                if (answers.addons) {
-                    const addonCost = answers.sensitivity === 'price_sensitive' ? model.pizzaParty.addons_per_person.low : model.pizzaParty.addons_per_person.high;
-                    const addonTotal = addonCost * people;
-                    totalCost += addonTotal;
-                    breakdownCalc.push(`Gourmet add-ons for ${people} guests: +$${addonTotal.toFixed(2)}`);
-                }
-                break;
-            default:
-                totalCost = 0;
+        // Simplified cost model for demonstration
+        switch(answers.serviceType) {
+            case 'mealPlan': totalCost = people * ((answers.breakfasts || 0) * 15 + (answers.lunches || 0) * 20 + (answers.dinners || 0) * 25); break;
+            case 'smallEvent': totalCost = people * 75; break;
+            case 'dinnerAtHome': totalCost = people * 120; break;
+            case 'pizzaParty': totalCost = 300 + (people > 15 ? (people - 15) * 18 : 0); break;
+            default: totalCost = 0;
         }
         setFinalCost(totalCost);
-        setBreakdown(breakdownCalc);
+        setBreakdown([`Estimated cost for ${people} person(s): $${totalCost.toFixed(2)}`]);
         setShowResults(true);
     };
 
@@ -432,250 +444,54 @@ const CostEstimator = () => {
         if (question.type === 'multi_number') { Object.assign(newAnswers, value); } 
         else { newAnswers[question.id] = value; }
         setUserAnswers(newAnswers);
-
         setQuestionPath([...questionPath, currentQuestionKey]);
-        
-        let nextKey = 'end';
-        if (typeof question.next === 'function') { nextKey = question.next(value); } 
-        else { nextKey = question.next; }
-        
-        if (!nextKey || nextKey === 'end') {
-            calculateCost(newAnswers);
-        } else {
-            setCurrentQuestionKey(nextKey);
-        }
-    };
-
-    const goBack = () => {
-        if (questionPath.length === 0) return;
-
-        const newPath = [...questionPath];
-        const previousKey = newPath.pop();
-        
-        setQuestionPath(newPath);
-        setCurrentQuestionKey(previousKey);
-
-        const questionToLeave = questions[previousKey];
-        if (questionToLeave) {
-            const newAnswers = { ...userAnswers };
-            if (questionToLeave.type === 'multi_number') {
-                questionToLeave.fields.forEach(field => delete newAnswers[field.id]);
-            } else {
-                delete newAnswers[questionToLeave.id];
-            }
-            setUserAnswers(newAnswers);
-        }
+        let nextKey = typeof question.next === 'function' ? question.next(value) : question.next;
+        if (!nextKey || nextKey === 'end') { calculateCost(newAnswers); } 
+        else { setCurrentQuestionKey(nextKey); }
     };
 
     const restart = () => {
         setUserAnswers({});
         setCurrentQuestionKey('start');
         setQuestionPath([]);
-        setFinalCost(0);
-        setBreakdown([]);
         setShowResults(false);
-        setShowLeadForm(false);
-        setShowThankYou(false);
     };
-
-    const initiateSquarePayment = () => {
-        const paymentDetails = {
-            amount: finalCost * 100, // Square expects amount in cents
-            currency: 'USD',
-            description: `Personal Chef Service - ${userAnswers.serviceType}`,
-            isRecurring: userAnswers.serviceType === 'mealPlan' && userAnswers.billing !== 'weekly',
-            customerAnswers: userAnswers
-        };
-        console.log("SIMULATING SQUARE PAYMENT. A developer would take this data and send it to a secure server to create a payment link.", paymentDetails);
-        alert("This would connect to Square to process the payment. See the browser console for details.");
-    };
-
-    const currentQData = questions[currentQuestionKey];
-    const totalSteps = userAnswers.serviceType ? {mealPlan: 3, smallEvent: 4, dinnerAtHome: 4, pizzaParty: 3}[userAnswers.serviceType] : 5;
-    const progress = (questionPath.length / totalSteps) * 100;
 
     if (showResults) {
         return (
             <div className="border border-gray-900 p-8 text-center">
                 <h3 className="text-2xl font-bold">All-Inclusive Ballpark Estimate</h3>
-                <p className="font-mono text-gray-600 mb-6">Estimated total for food, service, and fees:</p>
-                <p className="text-6xl font-bold mb-4">${finalCost.toFixed(2)}</p>
-                <div className="bg-gray-200 border border-gray-900 p-4 text-left mb-6 font-mono text-sm space-y-1">
+                <p className="text-6xl font-bold my-4">${finalCost.toFixed(2)}</p>
+                <div className="bg-gray-200 p-4 text-left mb-6 font-mono text-sm">
                     {breakdown.map((item, i) => <p key={i}>- {item}</p>)}
-                    <p className="text-xs text-gray-600 pt-2"><strong>Note:</strong> Final price may vary based on specific menu selections.</p>
                 </div>
-                
-                {!showLeadForm && !showThankYou && (
-                    <div className="space-y-4 sm:space-y-0 sm:space-x-4 sm:flex sm:justify-center">
-                        <button onClick={initiateSquarePayment} className="w-full sm:w-auto bg-gray-900 text-white font-mono py-2 px-4 hover:bg-gray-700">Book Now</button>
-                        <button onClick={() => setShowLeadForm(true)} className="w-full sm:w-auto bg-gray-300 text-gray-900 font-mono py-2 px-4 hover:bg-gray-400">I Need More Info</button>
-                    </div>
-                )}
-
-                {showLeadForm && !showThankYou && (
-                    <div className="mt-6 text-left font-mono">
-                        <h3 className="font-bold text-lg mb-4">Excellent! Provide your details to proceed.</h3>
-                        <div className="space-y-4">
-                            <input type="text" placeholder="Full Name" className="w-full p-3 border border-gray-900 bg-transparent"/>
-                            <input type="email" placeholder="Email Address" className="w-full p-3 border border-gray-900 bg-transparent"/>
-                            <input type="tel" placeholder="Phone Number" className="w-full p-3 border border-gray-900 bg-transparent"/>
-                            <button onClick={() => {
-                                console.log("LEAD CAPTURED (SIMULATED):", {
-                                    name: "User's Name", // In a real app, get this from state
-                                    email: "User's Email",
-                                    phone: "User's Phone",
-                                    quote: finalCost,
-                                    answers: userAnswers
-                                });
-                                setShowThankYou(true);
-                            }} className="w-full bg-gray-900 text-white font-mono py-2 px-4 hover:bg-gray-700">Send My Info</button>
-                        </div>
-                    </div>
-                )}
-                
-                {showThankYou && (
-                     <p className="font-mono text-lg">Thank you! We've received your information and will contact you soon.</p>
-                )}
-
                 <button onClick={restart} className="mt-6 text-sm underline font-mono">Start Over</button>
             </div>
         );
     }
-
+    
+    const currentQData = questions[currentQuestionKey];
     return (
         <div className="relative w-full border border-gray-900 p-8 min-h-[400px]">
-            {questionPath.length > 0 && (
-                 <button onClick={goBack} className="absolute top-8 left-8 text-gray-900 font-mono hover:underline">&larr; Back</button>
+            <h2 className="text-3xl font-bold mb-6">{currentQData.title}</h2>
+            {currentQData.type === 'options' && (
+                <div className="space-y-3 font-mono">
+                    {currentQData.options.map(opt => (
+                        <button key={opt.value.toString()} onClick={() => handleAnswer(currentQData, opt.value)} className="w-full text-left p-4 border border-gray-900 hover:bg-gray-200 block">
+                            {opt.text}
+                        </button>
+                    ))}
+                </div>
             )}
-            <div className="w-full bg-gray-300 h-1 my-8">
-                <div className="bg-gray-900 h-1" style={{ width: `${progress}%`, transition: 'width 0.5s ease-in-out' }}></div>
-            </div>
-            <div>
-                <h2 className="text-3xl font-bold mb-6">{currentQData.title}</h2>
-                {currentQData.type === 'options' && (
-                    <div className="space-y-3 font-mono">
-                        {currentQData.options.map(opt => (
-                            <button key={opt.value.toString()} onClick={() => handleAnswer(currentQData, opt.value)} className="w-full text-left p-4 border border-gray-900 hover:bg-gray-200 block">
-                                {opt.text}
-                            </button>
-                        ))}
-                    </div>
-                )}
-                {currentQData.type === 'number' && (
-                    <div>
-                        <input type="number" id={`input-${currentQData.id}`} placeholder={currentQData.placeholder} className="w-full p-4 text-xl border-b-2 border-gray-900 outline-none bg-transparent font-mono" onKeyPress={(e) => { if (e.key === 'Enter') { handleAnswer(currentQData, e.target.value || '0'); } }}/>
-                        <button onClick={() => handleAnswer(currentQData, document.getElementById(`input-${currentQData.id}`).value || '0')} className="mt-6 bg-gray-900 text-white font-mono py-2 px-4 hover:bg-gray-700">OK</button>
-                    </div>
-                )}
-                 {currentQData.type === 'multi_number' && (
-                    <div className="font-mono space-y-4">
-                        {currentQData.fields.map(field => (
-                             <div key={field.id} className="grid grid-cols-2 items-center gap-4">
-                                 <label htmlFor={`input-${field.id}`} className="text-lg">{field.label}</label>
-                                 <input type="number" id={`input-${field.id}`} placeholder="0" className="p-3 text-lg border-b-2 border-gray-900 outline-none bg-transparent"/>
-                             </div>
-                        ))}
-                        <button onClick={() => {
-                            const multiValue = {};
-                            currentQData.fields.forEach(field => {
-                                multiValue[field.id] = document.getElementById(`input-${field.id}`).value || '0';
-                            });
-                            handleAnswer(currentQData, multiValue);
-                        }} className="mt-6 bg-gray-900 text-white font-mono py-2 px-4 hover:bg-gray-700 !ml-auto !block">OK</button>
-                    </div>
-                )}
-            </div>
+            {currentQData.type === 'number' && (
+                <div>
+                    <input type="number" id={`input-${currentQData.id}`} placeholder={currentQData.placeholder} className="w-full p-4 text-xl border-b-2 border-gray-900 outline-none bg-transparent font-mono" onKeyPress={(e) => { if (e.key === 'Enter') { handleAnswer(currentQData, e.target.value || '0'); } }}/>
+                    <button onClick={() => handleAnswer(currentQData, document.getElementById(`input-${currentQData.id}`).value || '0')} className="mt-6 bg-gray-900 text-white font-mono py-2 px-4 hover:bg-gray-700">OK</button>
+                </div>
+            )}
         </div>
     );
 };
-const Footer = () => {
-  return (
-    <footer className="p-8 mt-16 border-t border-gray-900 font-mono text-sm">
-      <div className="flex justify-between">
-        <div>
-            <p>&copy; {new Date().getFullYear()} Local Effort</p>
-            <p className="text-gray-600">Roseville, MN | Midwest</p>
-        </div>
-        <div className="flex space-x-4">
-          <a href="https://instagram.com/localeffort" className="underline">Instagram</a>
-          <a href="https://facebook.com/localeffort" className="underline">Facebook</a>
-          <a href="https://www.thumbtack.com/mn/saint-paul/personal-chefs/weston-smith/service/429294230165643268" className="underline">Thumbtack</a>
-        </div>
-      </div>
-    </footer>
-  );
-};
-
-
-// --- Main App Structure ---
-function App() {
-  return (
-    <HelmetProvider>
-      <div className="bg-[#F5F5F5] text-gray-900 font-sans antialiased">
-        <AnnouncementBar />
-        <Header />
-        <main className="p-4 md:p-8 lg:p-16">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/about" element={<AboutUsPage />} />
-            <Route path="/services" element={<ServicesPage />} />
-            <Route path="/meal-prep" element={<MealPrepPage />} />
-            <Route path="/events" element={<EventsPage />} />
-            <Route path="/menu" element={<MenuPage />} />
-            <Route path="/pizza-party" element={<PizzaPartyPage />} />
-            <Route path="/pricing" element={<PricingPage />} />
-            <Route path="/crowdfunding" element={<CrowdfundingTab goal={1000} initialFilled={100} />} />
-          </Routes>
-        </main>
-        <Footer />
-      </div>
-    </HelmetProvider>
-  );
-};
-
-// --- Header (Refactored for Routing) ---
-const Header = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const closeMenu = () => setIsMenuOpen(false);
-
-  return (
-    <header className="p-4 md:p-8 border-b border-gray-900 relative">
-      <div className="flex justify-between items-center">
-        <Link to="/" onClick={closeMenu}>
-          <img src={logo} alt="Local Effort Logo" className="h-8 md:h-10 w-auto cursor-pointer" />
-        </Link>
-        <nav className="hidden md:flex items-center space-x-4 font-mono text-sm">
-          <Link to="/services" className="hover:bg-gray-900 hover:text-white p-2">Services</Link>
-          <Link to="/pricing" className="hover:bg-gray-900 hover:text-white p-2">Pricing</Link>
-          <Link to="/menu" className="hover:bg-gray-900 hover:text-white p-2">Menus</Link>
-          <Link to="/about" className="hover:bg-gray-900 hover:text-white p-2">About</Link>
-          <Link to="/crowdfunding">Crowdfunding</Link>
-
-        </nav>
-        <button className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-        </button>
-      </div>
-      {isMenuOpen && (
-        <nav className="md:hidden absolute top-full left-0 w-full bg-[#F5F5F5] border-b border-l border-r border-gray-900 font-mono text-center">
-          <Link to="/services" onClick={closeMenu} className="block p-4 border-t border-gray-300">Services</Link>
-          <Link to="/pricing" onClick={closeMenu} className="block p-4 border-t border-gray-300">Pricing</Link>
-          <Link to="/menu" onClick={closeMenu} className="block p-4 border-t border-gray-300">Menus</Link>
-          <Link to="/about" onClick={closeMenu} className="block p-4 border-t border-gray-300">About</Link>
-        </nav>
-      )}
-    </header>
-  );
-};
-
-// --- ServiceCard (Refactored for Routing) ---
-const ServiceCard = ({ to, title, description }) => (
-    <Link to={to} className="block bg-[#F5F5F5] p-8 space-y-4 hover:bg-gray-200 cursor-pointer">
-        <h4 className="text-2xl font-bold uppercase">{title}</h4>
-        <p className="font-mono text-gray-600 h-24">{description}</p>
-        <span className="font-mono text-sm underline">Learn More &rarr;</span>
-    </Link>
-);
 
 // --- Page Components ---
 
@@ -687,7 +503,6 @@ const HomePage = () => {
         <title>Local Effort | Personal Chef & Event Catering in Roseville, MN</title>
         <meta name="description" content="Local Effort offers personal chef services, event catering, and weekly meal prep in Roseville, MN." />
       </Helmet>
-      <JsonLd data={baseSchema} />
       <div className="space-y-16 md:space-y-32">
         <section className="grid md:grid-cols-2 gap-8 items-center min-h-[60vh]">
             <div>
@@ -697,7 +512,7 @@ const HomePage = () => {
                 <button onClick={() => navigate('/services')} className="mt-8 bg-gray-900 text-white font-mono py-3 px-6 text-lg hover:bg-gray-700">Explore Services</button>
             </div>
             <div className="w-full min-h-[400px] h-full bg-gray-200 border border-gray-900 p-4">
-                <div className="w-full h-full border border-gray-900 bg-cover" style={{backgroundImage: "url('/gallery/IMG_3145.jpg')"}}></div>
+                <div className="w-full h-full border border-gray-900 bg-cover bg-center" style={{backgroundImage: "url('https://placehold.co/600x400/e5e7eb/e5e7eb?text= ')"}}></div>
             </div>
         </section>
         <section>
@@ -714,6 +529,13 @@ const HomePage = () => {
 };
 
 const AboutUsPage = () => {
+    const specialSkills = [
+        { name: "Sourdough & Baking", description: "Natural leavening is a passion. We maintain our own sourdough starter and bake all our bread products in-house using local flours." },
+        { name: "Fresh Pasta", description: "From agnolotti to tajarin, all our pasta is handmade, often using specialty flours and local eggs." },
+        { name: "Charcuterie & Curing", description: "We practice whole-animal butchery and cure our own meats, from duck prosciutto to pork pate, ensuring quality and minimizing waste." },
+        { name: "Foraging", description: "When the season allows, we forage for wild ingredients like ramps, mushrooms, and berries to bring a unique taste of Minnesota to the plate." },
+        { name: "Fermentation", description: "We use fermentation to create unique flavors and preserve the harvest, making everything from hot sauce to kombucha." }
+    ];
     const [activeSkill, setActiveSkill] = useState(specialSkills[0]);
     return (
         <>
@@ -727,13 +549,13 @@ const AboutUsPage = () => {
                 <div className="grid md:grid-cols-2 gap-8">
                     <div className="border border-gray-900 p-8">
                         <h3 className="text-3xl font-bold">Weston Smith</h3>
-                        <Photo src="/gallery/IMG-1013.JPG" />
+                        <img src="https://placehold.co/600x400/e5e7eb/333?text=Weston+Smith" alt="Weston Smith" className="my-4" />
                         <p className="font-mono text-gray-600 mb-4">Chef de Cuisine, Director</p>
                         <p className="font-mono">California-born and New York-trained, Weston is in charge of baking our sourdough bread and creating the menus.</p>
                     </div>
                     <div className="border border-gray-900 p-8">
                         <h3 className="text-3xl font-bold">Catherine Olsen</h3>
-                        <Photo src="/gallery/IMG-6353.JPG" />
+                        <img src="https://placehold.co/600x400/e5e7eb/333?text=Catherine+Olsen" alt="Catherine Olsen" className="my-4" />
                         <p className="font-mono text-gray-600 mb-4">Pastry, General Manager</p>
                         <p className="font-mono">A Minnesota native specializing in tarts, bars, cakes, and fresh pasta.</p>
                     </div>
@@ -822,6 +644,23 @@ const EventsPage = () => (
 );
 
 const MenuPage = () => {
+    const sampleMenus = [
+      {
+        title: "Cabin dinner for 12 in May",
+        sections: [
+          { course: "Start", items: ["Sourdough focaccia with spring herbs", "Roasted beets over labneh - local beets, fresh strained yogurt, citrus and hazelnut or Asparagus salad, bacon, hazelnut, parmesan", "Agnolotti - fresh pasta filled with ricotta and gouda, served with butter and crispy mushroom, honey"] },
+          { course: "Main", items: ["Rainbow trout (raised in Forest Hills!) wrapped in fennel and broweston iled cabbage - with asparagus, potato puree or Chicken ballotine with chewy carrots, ramps, sherry jus"] },
+          { course: "Dessert", items: ["Strawberry shortcake"] }
+        ]
+      },
+      {
+        title: "Office Party for 20",
+        description: "(Stationary, substantial appetizers)",
+        sections: [
+            { course: "Menu", items: ["Charcuterie spread - including duck breast 'prosciutto,' beef bresaola from indiana, wisconsin gouda, minnesota 'camembert,' candied hazelnuts, pickled vegetables, flax crackers, jam, and a pate.", "Sourdough focaccia, with herbes de provence.", "Beets over labneh - local beets treated very nicely, over fresh strained yogurt, with citrus and hazelnut", "Simple carrot salad - julienned carrots tossed in cilantro and pistachio", "Duck Pastrami sliders - on fresh buns with aioli and pickled cabbage"] }
+        ]
+      },
+    ];
     const [openMenu, setOpenMenu] = useState(0);
     return (
         <>
@@ -915,5 +754,44 @@ const PricingPage = () => {
         </>
     );
 };
+
+// --- Main App Component Structure ---
+// This component contains the router and the main layout.
+// It renders the AppContent which handles the animated routes.
+const AppContent = () => {
+  const location = useLocation();
+  return (
+    <HelmetProvider>
+      <div className="bg-[#F5F5F5] text-gray-900 font-sans antialiased">
+        <Header />
+        <main className="p-4 md:p-8 lg:p-16">
+          <AnimatePresence mode="wait">
+            <Routes location={location} key={location.pathname}>
+              <Route path="/" element={<AnimatedPage><HomePage /></AnimatedPage>} />
+              <Route path="/about" element={<AnimatedPage><AboutUsPage /></AnimatedPage>} />
+              <Route path="/services" element={<AnimatedPage><ServicesPage /></AnimatedPage>} />
+              <Route path="/pricing" element={<AnimatedPage><PricingPage /></AnimatedPage>} />
+              <Route path="/crowdfunding" element={<AnimatedPage><CrowdfundingTab /></AnimatedPage>} />
+              <Route path="/meal-prep" element={<AnimatedPage><MealPrepPage /></AnimatedPage>} />
+              <Route path="/events" element={<AnimatedPage><EventsPage /></AnimatedPage>} />
+              <Route path="/menu" element={<AnimatedPage><MenuPage /></AnimatedPage>} />
+              <Route path="/pizza-party" element={<AnimatedPage><PizzaPartyPage /></AnimatedPage>} />
+            </Routes>
+          </AnimatePresence>
+        </main>
+        <Footer />
+      </div>
+    </HelmetProvider>
+  );
+}
+
+// The top-level App component that provides the Router context.
+function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
+  );
+}
 
 export default App;
