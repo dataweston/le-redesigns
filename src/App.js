@@ -10,7 +10,7 @@ import logo from './logo.png';
 function CrowdfundingTab({ goal = 1000, initialFilled = 100 }) {
   const TOTAL_SLICES = goal; // 1000 by default
   const [filled, setFilled] = useState(Math.min(initialFilled, TOTAL_SLICES));
-  const lastFilledRef = useRef(filled);
+  const lastFilledRef = useRef();
 
   // expose a quick test hook for you / your agent logic
   useEffect(() => {
