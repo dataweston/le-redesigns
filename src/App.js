@@ -329,9 +329,9 @@ const Header = () => {
   return (
     <header className="p-4 md:p-8 border-b border-gray-900 relative">
       <div className="flex justify-between items-center">
-        <Link to="/#/" onClick={closeMenu}>
+        <a href="/#/" onClick={closeMenu}>
           <img src={logo} alt="Local Effort Logo" className="h-10 w-auto cursor-pointer" />
-        </Link>
+        </a>
         <nav className="hidden md:flex items-center space-x-2 font-mono text-sm">
           <Link to="/services" className="hover:bg-gray-200 rounded p-2 transition-colors">Services</Link>
           <Link to="/pricing" className="hover:bg-gray-200 rounded p-2 transition-colors">Pricing</Link>
