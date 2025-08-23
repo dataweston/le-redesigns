@@ -530,7 +530,7 @@ const HomePage = () => {
                 <p className="mt-8 font-mono max-w-md">Professional in-home dining. 30 years collective fine food experience. Sourcing the best local ingredients without compromise.</p>
                 <button onClick={() => navigate('/services')} className="mt-8 bg-gray-900 text-white font-mono py-3 px-6 text-lg hover:bg-gray-700">Explore Services</button>
             </div>
-            <div className="w-full min-h-[400px] h-full bg-gray-200 border border-gray-900 p-4">
+            <div className="w-full min-h-[400px] h-full bg-gray-200 border border-gray-900 p-4"><script type="text/javascript" src="https://form.jotform.com/jsform/222407323049146"></script>
                 <div className="w-full h-full border border-gray-900 bg-cover bg-center" style={{backgroundImage: "url('/gallery/IMG_3145.jpg')"}}></div>
             </div>
         </section>
