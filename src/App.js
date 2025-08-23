@@ -1,7 +1,7 @@
 // src/App.js
 
 import React from 'react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react'; // Added useRef for the Jotform component
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import { HashRouter, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -599,6 +599,36 @@ const AboutUsPage = () => {
     );
 };
 
+// --- START: NEW COMPONENT FOR JOTFORM ---
+const JotformInquiryForm = () => {
+  const formRef = useRef(null);
+
+  useEffect(() => {
+    // Create script element
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = "https://form.jotform.com/jsform/222407323049146";
+
+    // Append to the ref'd div
+    if (formRef.current) {
+      formRef.current.appendChild(script);
+    }
+
+    // Optional: Cleanup function to remove script on component unmount
+    return () => {
+      if (formRef.current) {
+        const jotformScript = formRef.current.querySelector(`script[src="${script.src}"]`);
+        if (jotformScript) {
+          formRef.current.removeChild(jotformScript);
+        }
+      }
+    };
+  }, []); // Empty dependency array ensures this effect runs only once
+
+  return <div ref={formRef}></div>;
+};
+// --- END: NEW COMPONENT FOR JOTFORM ---
+
 const ServicesPage = () => {
     const navigate = useNavigate();
     return (
@@ -626,6 +656,16 @@ const ServicesPage = () => {
                         <button onClick={() => navigate('/pizza-party')} className="font-mono text-sm underline">Details &rarr;</button>
                     </div>
                 </div>
+
+                {/* --- START: NEW SECTION WITH JOTFORM --- */}
+                <section>
+                    <h3 className="text-3xl font-bold uppercase mb-8 border-b border-gray-900 pb-4">General Inquiry</h3>
+                    <div className="border border-gray-900 p-4 md:p-8">
+                        <JotformInquiryForm />
+                    </div>
+                </section>
+                {/* --- END: NEW SECTION WITH JOTFORM --- */}
+
             </div>
         </>
     );
@@ -806,7 +846,11 @@ const AppContent = () => {
 
 // The top-level App component that provides the Router context.
 function App() {
-  return <AppContent />;
+  return (
+    <HashRouter>
+      <AppContent />
+    </HashRouter>
+  );
 }
 
 export default App;
